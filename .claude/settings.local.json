@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "/tmp/claude-1000"
+    ]
+  }
+}

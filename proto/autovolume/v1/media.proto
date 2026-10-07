@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package autovolume.v1;
+
+enum MediaType {
+  MEDIA_TYPE_UNSPECIFIED = 0;
+  MEDIA_TYPE_MOVIE = 1;
+  MEDIA_TYPE_SHOW = 2;
+}
+
+message MediaItem {
+  string rating_key = 1;
+  MediaType type = 2;
+  string title = 3;
+  int32 year = 4;
+  // Backend path, e.g. "/api/img/12345". The frontend appends ?w=&h= to pick a size.
+  string thumb_url = 5;
+  optional int32 volume = 6;
+}

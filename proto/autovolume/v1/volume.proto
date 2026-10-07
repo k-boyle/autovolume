@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package autovolume.v1;
+
+import "autovolume/v1/media.proto";
+
+// Rules attach to movies and shows; episodes use their show's rule.
+// When playback on the selected player starts or resumes (buffering counts as
+// playing), the backend sets the TV to the rule, or the default without one.
+// On pause or stop it sets the default. Act only on state changes: Plex
+// re-sends "playing" every ~10s, and re-applying would override the TV remote.
+// None of these RPCs touch the TV; TvService.SetTvVolume is the "apply now" path.
+service VolumeService {
+  rpc SetVolumeRule(SetVolumeRuleRequest) returns (SetVolumeRuleResponse);
+  rpc ClearVolumeRule(ClearVolumeRuleRequest) returns (ClearVolumeRuleResponse);
+  // Sorted by title.
+  rpc ListVolumeRules(ListVolumeRulesRequest) returns (ListVolumeRulesResponse);
+  rpc GetDefaultVolume(GetDefaultVolumeRequest) returns (GetDefaultVolumeResponse);
+  rpc SetDefaultVolume(SetDefaultVolumeRequest) returns (SetDefaultVolumeResponse);
+}
+
+message SetVolumeRuleRequest {
+  string rating_key = 1;
+  int32 volume = 2;
+}
+
+message SetVolumeRuleResponse {
+  MediaItem item = 1;
+}
+
+message ClearVolumeRuleRequest {
+  string rating_key = 1;
+}
+
+message ClearVolumeRuleResponse {
+  MediaItem item = 1;
+}
+
+message ListVolumeRulesRequest {}
+
+message ListVolumeRulesResponse {
+  repeated MediaItem items = 1;
+}
+
+message GetDefaultVolumeRequest {}
+
+message GetDefaultVolumeResponse {
+  // Unset until configured; until then the backend leaves the volume alone.
+  optional int32 volume = 1;
+}
+
+message SetDefaultVolumeRequest {
+  int32 volume = 1;
+}
+
+message SetDefaultVolumeResponse {
+  int32 volume = 1;
+}

@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package autovolume.v1;
+
+import "autovolume/v1/media.proto";
+import "autovolume/v1/tv.proto";
+
+service NowPlayingService {
+  // Sends a full snapshot immediately and whenever anything in it changes.
+  // Re-send at least every 30s so idle proxies don't drop the stream.
+  rpc WatchNowPlaying(WatchNowPlayingRequest) returns (stream WatchNowPlayingResponse);
+}
+
+enum PlaybackState {
+  PLAYBACK_STATE_UNSPECIFIED = 0;
+  PLAYBACK_STATE_PLAYING = 1;
+  PLAYBACK_STATE_PAUSED = 2;
+}
+
+message Episode {
+  string title = 1;
+  int32 season_number = 2;
+  int32 episode_number = 3;
+}
+
+message Playback {
+  PlaybackState state = 1;
+  MediaItem item = 2;
+  // Set when an episode is playing; `item` is then its show.
+  Episode episode = 3;
+}
+
+message WatchNowPlayingRequest {}
+
+message WatchNowPlayingResponse {
+  Playback playback = 1;
+  TvState tv = 2;
+  optional int32 default_volume = 3;
+}

@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package autovolume.v1;
+
+service TvService {
+  rpc GetTvConfig(GetTvConfigRequest) returns (GetTvConfigResponse);
+  rpc UpdateTvConfig(UpdateTvConfigRequest) returns (UpdateTvConfigResponse);
+  rpc TestTvConnection(TestTvConnectionRequest) returns (TestTvConnectionResponse);
+  rpc SetTvVolume(SetTvVolumeRequest) returns (SetTvVolumeResponse);
+}
+
+enum TvPower {
+  // No TV configured.
+  TV_POWER_UNSPECIFIED = 0;
+  TV_POWER_UNREACHABLE = 1;
+  TV_POWER_STANDBY = 2;
+  TV_POWER_ACTIVE = 3;
+}
+
+message TvState {
+  TvPower power = 1;
+  // Unset unless power is TV_POWER_ACTIVE.
+  optional int32 volume = 2;
+  bool muted = 3;
+}
+
+message TvConfig {
+  string address = 1;
+  bool psk_set = 2;
+}
+
+message GetTvConfigRequest {}
+
+message GetTvConfigResponse {
+  TvConfig config = 1;
+}
+
+message UpdateTvConfigRequest {
+  string address = 1;
+  // Unset keeps the saved PSK.
+  optional string psk = 2;
+}
+
+message UpdateTvConfigResponse {
+  TvConfig config = 1;
+}
+
+message TestTvConnectionRequest {
+  string address = 1;
+  // Unset tests with the saved PSK.
+  optional string psk = 2;
+}
+
+message TestTvConnectionResponse {
+  string model = 1;
+  TvState state = 2;
+}
+
+message SetTvVolumeRequest {
+  int32 volume = 1;
+}
+
+message SetTvVolumeResponse {
+  TvState state = 1;
+}

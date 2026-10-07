@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package autovolume.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service SetupService {
+  rpc ListServers(ListServersRequest) returns (ListServersResponse);
+  // CodePermissionDenied for servers the account doesn't own: only owners receive playback notifications.
+  rpc SelectServer(SelectServerRequest) returns (SelectServerResponse);
+  // plex.tv players plus any player seen in a playback session, so a TV may only appear once it has played something.
+  rpc ListPlayers(ListPlayersRequest) returns (ListPlayersResponse);
+  // Playback on every other player is ignored.
+  rpc SelectPlayer(SelectPlayerRequest) returns (SelectPlayerResponse);
+  rpc GetSetupStatus(GetSetupStatusRequest) returns (GetSetupStatusResponse);
+}
+
+message Server {
+  // Plex clientIdentifier.
+  string id = 1;
+  string name = 2;
+  bool owned = 3;
+  bool online = 4;
+}
+
+message Player {
+  // Plex clientIdentifier; matches clientIdentifier in PlaySessionStateNotification.
+  string id = 1;
+  string name = 2;
+  string product = 3;
+  google.protobuf.Timestamp last_seen = 4;
+}
+
+message SetupStatus {
+  Server server = 1;
+  Player player = 2;
+  bool plex_connected = 3;
+  bool tv_configured = 4;
+}
+
+message ListServersRequest {}
+
+message ListServersResponse {
+  repeated Server servers = 1;
+}
+
+message SelectServerRequest {
+  string server_id = 1;
+}
+
+message SelectServerResponse {
+  SetupStatus status = 1;
+}
+
+message ListPlayersRequest {}
+
+message ListPlayersResponse {
+  repeated Player players = 1;
+}
+
+message SelectPlayerRequest {
+  string player_id = 1;
+}
+
+message SelectPlayerResponse {
+  SetupStatus status = 1;
+}
+
+message GetSetupStatusRequest {}
+
+message GetSetupStatusResponse {
+  SetupStatus status = 1;
+}

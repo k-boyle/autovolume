@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package autovolume.v1;
+
+import "autovolume/v1/media.proto";
+
+service LibraryService {
+  // Movie and show sections only.
+  rpc ListLibraries(ListLibrariesRequest) returns (ListLibrariesResponse);
+  // Sorted by title.
+  rpc ListItems(ListItemsRequest) returns (ListItemsResponse);
+}
+
+message Library {
+  string id = 1;
+  string title = 2;
+  MediaType type = 3;
+}
+
+message ListLibrariesRequest {}
+
+message ListLibrariesResponse {
+  repeated Library libraries = 1;
+}
+
+message ListItemsRequest {
+  string library_id = 1;
+  // Case-insensitive title filter.
+  string query = 2;
+  int32 offset = 3;
+  int32 limit = 4;
+}
+
+message ListItemsResponse {
+  repeated MediaItem items = 1;
+  int32 total = 2;
+}

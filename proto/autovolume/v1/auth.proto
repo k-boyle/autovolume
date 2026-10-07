@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package autovolume.v1;
+
+service AuthService {
+  // Also sets an HttpOnly cookie holding the PIN id, so only this browser can complete the login.
+  rpc StartLogin(StartLoginRequest) returns (StartLoginResponse);
+  // Polled until complete. CodeNotFound once the PIN is used or expired.
+  // CodePermissionDenied if a server is selected and this account can't access it;
+  // before a server is selected, any account may sign in.
+  rpc CompleteLogin(CompleteLoginRequest) returns (CompleteLoginResponse);
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
+
+message User {
+  string username = 1;
+  string avatar_url = 2;
+}
+
+message StartLoginRequest {
+  string forward_url = 1;
+}
+
+message StartLoginResponse {
+  string auth_url = 1;
+}
+
+message CompleteLoginRequest {}
+
+message CompleteLoginResponse {
+  bool complete = 1;
+  User user = 2;
+}
+
+message GetSessionRequest {}
+
+message GetSessionResponse {
+  User user = 1;
+}
+
+message LogoutRequest {}
+
+message LogoutResponse {}

@@ -1,0 +1,18 @@
+version: v2
+clean: true
+managed:
+  enabled: true
+  override:
+    # Must match the module path in backend/go.mod.
+    - file_option: go_package_prefix
+      value:  github.com/k-boyle/autovolume/gen
+plugins:
+  - local: ["go", "-C", "backend", "tool", "protoc-gen-go"]
+    out: backend/gen
+    opt: paths=source_relative
+  - local: ["go", "-C", "backend", "tool", "protoc-gen-connect-go"]
+    out: backend/gen
+    opt: paths=source_relative
+  - local: web/node_modules/.bin/protoc-gen-es
+    out: web/src/gen
+    opt: target=ts
