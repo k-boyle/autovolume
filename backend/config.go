@@ -5,7 +5,8 @@ import (
 )
 
 type Config struct {
-	Port string
+	Port               string
+	DatabaseConnection string `mapstructure:"database_connection"`
 }
 
 func LoadConfig(v *viper.Viper) (*Config, error) {
@@ -14,7 +15,9 @@ func LoadConfig(v *viper.Viper) (*Config, error) {
 	v.SetEnvPrefix("AV")
 	v.AutomaticEnv()
 
-	v.SetDefault("port", "8080")
+	if err := v.BindEnv("database_connection"); err != nil {
+		return nil, err
+	}
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err

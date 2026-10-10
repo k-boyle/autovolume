@@ -10,13 +10,14 @@ import (
 	"strings"
 
 	"github.com/k-boyle/autovolume/auth"
+	"github.com/k-boyle/autovolume/database"
 	"github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
 	"github.com/k-boyle/autovolume/library"
 	"github.com/k-boyle/autovolume/playing"
 	"github.com/k-boyle/autovolume/setup"
 	"github.com/k-boyle/autovolume/tv"
 	"github.com/k-boyle/autovolume/volume"
-	viper "github.com/spf13/viper"
+	"github.com/spf13/viper"
 )
 
 //go:embed web
@@ -26,8 +27,25 @@ func main() {
 	v := viper.New()
 	config, err := LoadConfig(v)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to read config", err)
 	}
+	log.Println("Config loaded")
+
+	db, err := database.New(config.DatabaseConnection)
+	if err != nil {
+		log.Fatal("failed to connect to database", err)
+	}
+	defer func(db *database.Database) {
+		err := db.Close()
+		if err != nil {
+			log.Fatal("failed to close database connection", err)
+		}
+	}(db)
+
+	if err := db.Migrate(); err != nil {
+		log.Fatal("failed to run migrations", err)
+	}
+	log.Println("Migrations run")
 
 	mux := http.NewServeMux()
 
@@ -43,8 +61,10 @@ func main() {
 		Handler:   mux,
 		Protocols: p,
 	}
+
+	log.Println("Listening on " + srv.Addr)
 	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to start server", err)
 	}
 }
 
