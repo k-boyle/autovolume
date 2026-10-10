@@ -1,20 +1,94 @@
 package main
 
 import (
-	"fmt"
+	"embed"
+	"io/fs"
+	"log"
+	"net/http"
+	"path"
+	"strings"
+
+	"github.com/k-boyle/autovolume/auth"
+	"github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
+	"github.com/k-boyle/autovolume/library"
+	"github.com/k-boyle/autovolume/playing"
+	"github.com/k-boyle/autovolume/setup"
+	"github.com/k-boyle/autovolume/tv"
+	"github.com/k-boyle/autovolume/volume"
 )
 
-// TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
-func main() {
-	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-	s := "gopher"
-	fmt.Println("Hello and welcome, %s!", s)
+//go:embed web
+var web embed.FS
 
-	for i := 1; i <= 5; i++ {
-		//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-		// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-		fmt.Println("i =", 100/i)
+func main() {
+	mux := http.NewServeMux()
+
+	mux.Handle("/api/", http.StripPrefix("/api", backend()))
+	mux.Handle("/", frontend())
+
+	p := new(http.Protocols)
+	p.SetHTTP1(true)
+	p.SetUnencryptedHTTP2(true)
+
+	srv := &http.Server{
+		Addr:      ":8080",
+		Handler:   mux,
+		Protocols: p,
 	}
+	if err := srv.ListenAndServe(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func backend() http.Handler {
+	api := http.NewServeMux()
+	pattern, handler := autovolumev1connect.NewAuthServiceHandler(auth.NewHandler())
+	api.Handle(pattern, handler)
+
+	pattern, handler = autovolumev1connect.NewLibraryServiceHandler(library.NewHandler())
+	api.Handle(pattern, handler)
+
+	pattern, handler = autovolumev1connect.NewNowPlayingServiceHandler(playing.NewHandler())
+	api.Handle(pattern, handler)
+
+	pattern, handler = autovolumev1connect.NewSetupServiceHandler(setup.NewHandler())
+	api.Handle(pattern, handler)
+
+	pattern, handler = autovolumev1connect.NewTvServiceHandler(tv.NewHandler())
+	api.Handle(pattern, handler)
+
+	pattern, handler = autovolumev1connect.NewVolumeServiceHandler(volume.NewHandler())
+	api.Handle(pattern, handler)
+	return api
+}
+
+func frontend() http.Handler {
+	dist, err := fs.Sub(web, "web/dist")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		name := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+		isAsset := strings.HasPrefix(name, "assets/")
+
+		switch {
+		case isFile(dist, name):
+			if isAsset {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			}
+			http.ServeFileFS(w, r, dist, name)
+
+		case isAsset:
+			http.NotFound(w, r)
+
+		default:
+			w.Header().Set("Cache-Control", "no-cache")
+			http.ServeFileFS(w, r, dist, "index.html")
+		}
+	})
+}
+
+func isFile(f fs.FS, name string) bool {
+	info, err := fs.Stat(f, name)
+	return err == nil && !info.IsDir()
 }
