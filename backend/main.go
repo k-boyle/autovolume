@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -15,12 +16,19 @@ import (
 	"github.com/k-boyle/autovolume/setup"
 	"github.com/k-boyle/autovolume/tv"
 	"github.com/k-boyle/autovolume/volume"
+	viper "github.com/spf13/viper"
 )
 
 //go:embed web
 var web embed.FS
 
 func main() {
+	v := viper.New()
+	config, err := LoadConfig(v)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	mux := http.NewServeMux()
 
 	mux.Handle("/api/", http.StripPrefix("/api", backend()))
@@ -31,7 +39,7 @@ func main() {
 	p.SetUnencryptedHTTP2(true)
 
 	srv := &http.Server{
-		Addr:      ":8080",
+		Addr:      fmt.Sprintf(":%s", config.Port),
 		Handler:   mux,
 		Protocols: p,
 	}
