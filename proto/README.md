@@ -21,7 +21,7 @@ mux.Handle("/api/", http.StripPrefix("/api", api))
 | Route | Purpose |
 | --- | --- |
 | `GET /api/img/{rating_key}?w=&h=` | Poster proxy. Fetches the Plex `/photo/:/transcode` with the server token and sets cache headers. `MediaItem.thumb_url` points here. |
-| Everything else | The built frontend, falling back to `index.html` for client-side routes like `/login/callback`. |
+| Everything else | The built frontend, falling back to `index.html` for client-side routes like `/settings`. |
 
 The backend learns about playback from the Plex server's notification
 websocket, not webhooks, so Plex never calls in.

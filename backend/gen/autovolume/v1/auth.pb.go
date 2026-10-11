@@ -75,7 +75,6 @@ func (x *User) GetAvatarUrl() string {
 
 type StartLoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ForwardUrl    string                 `protobuf:"bytes,1,opt,name=forward_url,json=forwardUrl,proto3" json:"forward_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -110,16 +109,11 @@ func (*StartLoginRequest) Descriptor() ([]byte, []int) {
 	return file_autovolume_v1_auth_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *StartLoginRequest) GetForwardUrl() string {
-	if x != nil {
-		return x.ForwardUrl
-	}
-	return ""
-}
-
 type StartLoginResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AuthUrl       string                 `protobuf:"bytes,1,opt,name=auth_url,json=authUrl,proto3" json:"auth_url,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	AuthUrl string                 `protobuf:"bytes,1,opt,name=auth_url,json=authUrl,proto3" json:"auth_url,omitempty"`
+	// Whoever holds this gets the session, so it must be random and unguessable, never the PIN id.
+	LoginId       string `protobuf:"bytes,2,opt,name=login_id,json=loginId,proto3" json:"login_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -161,8 +155,16 @@ func (x *StartLoginResponse) GetAuthUrl() string {
 	return ""
 }
 
+func (x *StartLoginResponse) GetLoginId() string {
+	if x != nil {
+		return x.LoginId
+	}
+	return ""
+}
+
 type CompleteLoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	LoginId       string                 `protobuf:"bytes,1,opt,name=login_id,json=loginId,proto3" json:"login_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -195,6 +197,13 @@ func (x *CompleteLoginRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CompleteLoginRequest.ProtoReflect.Descriptor instead.
 func (*CompleteLoginRequest) Descriptor() ([]byte, []int) {
 	return file_autovolume_v1_auth_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CompleteLoginRequest) GetLoginId() string {
+	if x != nil {
+		return x.LoginId
+	}
+	return ""
 }
 
 type CompleteLoginResponse struct {
@@ -409,13 +418,13 @@ const file_autovolume_v1_auth_proto_rawDesc = "" +
 	"\x04User\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1d\n" +
 	"\n" +
-	"avatar_url\x18\x02 \x01(\tR\tavatarUrl\"4\n" +
-	"\x11StartLoginRequest\x12\x1f\n" +
-	"\vforward_url\x18\x01 \x01(\tR\n" +
-	"forwardUrl\"/\n" +
+	"avatar_url\x18\x02 \x01(\tR\tavatarUrl\"\x13\n" +
+	"\x11StartLoginRequest\"J\n" +
 	"\x12StartLoginResponse\x12\x19\n" +
-	"\bauth_url\x18\x01 \x01(\tR\aauthUrl\"\x16\n" +
-	"\x14CompleteLoginRequest\"\\\n" +
+	"\bauth_url\x18\x01 \x01(\tR\aauthUrl\x12\x19\n" +
+	"\blogin_id\x18\x02 \x01(\tR\aloginId\"1\n" +
+	"\x14CompleteLoginRequest\x12\x19\n" +
+	"\blogin_id\x18\x01 \x01(\tR\aloginId\"\\\n" +
 	"\x15CompleteLoginResponse\x12\x1a\n" +
 	"\bcomplete\x18\x01 \x01(\bR\bcomplete\x12'\n" +
 	"\x04user\x18\x02 \x01(\v2\x13.autovolume.v1.UserR\x04user\"\x13\n" +

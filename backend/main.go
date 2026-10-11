@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"embed"
 	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"path"
 	"strings"
 
@@ -14,6 +18,7 @@ import (
 	"github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
 	"github.com/k-boyle/autovolume/library"
 	"github.com/k-boyle/autovolume/playing"
+	"github.com/k-boyle/autovolume/plex"
 	"github.com/k-boyle/autovolume/setup"
 	"github.com/k-boyle/autovolume/tv"
 	"github.com/k-boyle/autovolume/volume"
@@ -24,21 +29,23 @@ import (
 var web embed.FS
 
 func main() {
+	ctx := context.Background()
+
 	v := viper.New()
 	config, err := LoadConfig(v)
 	if err != nil {
-		log.Fatal("failed to read config", err)
+		log.Fatal("failed to read config - ", err)
 	}
 	log.Println("Config loaded")
 
 	db, err := database.New(config.DatabaseConnection)
 	if err != nil {
-		log.Fatal("failed to connect to database", err)
+		log.Fatal("failed to connect to database - ", err)
 	}
 	defer func(db *database.Database) {
 		err := db.Close()
 		if err != nil {
-			log.Fatal("failed to close database connection", err)
+			log.Fatal("failed to close database connection - ", err)
 		}
 	}(db)
 
@@ -47,9 +54,21 @@ func main() {
 	}
 	log.Println("Migrations run")
 
+	settings, err := getSettings(ctx, db)
+	if err != nil {
+		log.Fatal("failed to get settings - ", err)
+	}
+	pub, prv := getKeys(settings)
+
+	http.DefaultClient.Jar, _ = cookiejar.New(nil)
+	client, err := plex.New(http.DefaultClient, settings.PlexClientId, pub, prv)
+	if err != nil {
+		log.Fatal("failed to create plex client - ", err)
+	}
+
 	mux := http.NewServeMux()
 
-	mux.Handle("/api/", http.StripPrefix("/api", backend()))
+	mux.Handle("/api/", http.StripPrefix("/api", backend(db, client)))
 	mux.Handle("/", frontend())
 
 	p := new(http.Protocols)
@@ -64,13 +83,13 @@ func main() {
 
 	log.Println("Listening on " + srv.Addr)
 	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal("failed to start server", err)
+		log.Fatal("failed to start server - ", err)
 	}
 }
 
-func backend() http.Handler {
+func backend(db *database.Database, plex *plex.Client) http.Handler {
 	api := http.NewServeMux()
-	pattern, handler := autovolumev1connect.NewAuthServiceHandler(auth.NewHandler())
+	pattern, handler := autovolumev1connect.NewAuthServiceHandler(auth.NewHandler(db, plex))
 	api.Handle(pattern, handler)
 
 	pattern, handler = autovolumev1connect.NewLibraryServiceHandler(library.NewHandler())
@@ -119,4 +138,38 @@ func frontend() http.Handler {
 func isFile(f fs.FS, name string) bool {
 	info, err := fs.Stat(f, name)
 	return err == nil && !info.IsDir()
+}
+
+func getSettings(ctx context.Context, db *database.Database) (*database.Settings, error) {
+	settings, err := db.ReadSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if settings == nil {
+		settings, err = db.CreateSettings(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(settings.PlexKeySeed) == 0 {
+		_, prv, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+
+		settings.PlexKeySeed = prv.Seed()
+		if err := db.UpdatePlexKeySeed(ctx, settings); err != nil {
+			return nil, err
+		}
+
+		return settings, nil
+	}
+
+	return settings, nil
+}
+
+func getKeys(settings *database.Settings) (ed25519.PublicKey, ed25519.PrivateKey) {
+	prv := ed25519.NewKeyFromSeed(settings.PlexKeySeed)
+	return prv.Public().(ed25519.PublicKey), prv
 }

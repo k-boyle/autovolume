@@ -46,9 +46,9 @@ const (
 
 // AuthServiceClient is a client for the autovolume.v1.AuthService service.
 type AuthServiceClient interface {
-	// Also sets an HttpOnly cookie holding the PIN id, so only this browser can complete the login.
+	// The frontend opens auth_url in a popup and closes it itself, so auth_url needs no forwardUrl.
 	StartLogin(context.Context, *connect.Request[v1.StartLoginRequest]) (*connect.Response[v1.StartLoginResponse], error)
-	// Polled until complete. CodeNotFound once the PIN is used or expired.
+	// Polled until complete. CodeNotFound for an unknown, used or expired login_id.
 	// CodePermissionDenied if a server is selected and this account can't access it;
 	// before a server is selected, any account may sign in.
 	CompleteLogin(context.Context, *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error)
@@ -124,9 +124,9 @@ func (c *authServiceClient) Logout(ctx context.Context, req *connect.Request[v1.
 
 // AuthServiceHandler is an implementation of the autovolume.v1.AuthService service.
 type AuthServiceHandler interface {
-	// Also sets an HttpOnly cookie holding the PIN id, so only this browser can complete the login.
+	// The frontend opens auth_url in a popup and closes it itself, so auth_url needs no forwardUrl.
 	StartLogin(context.Context, *connect.Request[v1.StartLoginRequest]) (*connect.Response[v1.StartLoginResponse], error)
-	// Polled until complete. CodeNotFound once the PIN is used or expired.
+	// Polled until complete. CodeNotFound for an unknown, used or expired login_id.
 	// CodePermissionDenied if a server is selected and this account can't access it;
 	// before a server is selected, any account may sign in.
 	CompleteLogin(context.Context, *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error)

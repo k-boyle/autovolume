@@ -3,9 +3,9 @@ syntax = "proto3";
 package autovolume.v1;
 
 service AuthService {
-  // Also sets an HttpOnly cookie holding the PIN id, so only this browser can complete the login.
+  // The frontend opens auth_url in a popup and closes it itself, so auth_url needs no forwardUrl.
   rpc StartLogin(StartLoginRequest) returns (StartLoginResponse);
-  // Polled until complete. CodeNotFound once the PIN is used or expired.
+  // Polled until complete. CodeNotFound for an unknown, used or expired login_id.
   // CodePermissionDenied if a server is selected and this account can't access it;
   // before a server is selected, any account may sign in.
   rpc CompleteLogin(CompleteLoginRequest) returns (CompleteLoginResponse);
@@ -18,15 +18,17 @@ message User {
   string avatar_url = 2;
 }
 
-message StartLoginRequest {
-  string forward_url = 1;
-}
+message StartLoginRequest {}
 
 message StartLoginResponse {
   string auth_url = 1;
+  // Whoever holds this gets the session, so it must be random and unguessable, never the PIN id.
+  string login_id = 2;
 }
 
-message CompleteLoginRequest {}
+message CompleteLoginRequest {
+  string login_id = 1;
+}
 
 message CompleteLoginResponse {
   bool complete = 1;

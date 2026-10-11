@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file autovolume/v1/auth.proto.
  */
 export const file_autovolume_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChhhdXRvdm9sdW1lL3YxL2F1dGgucHJvdG8SDWF1dG92b2x1bWUudjEiLAoEVXNlchIQCgh1c2VybmFtZRgBIAEoCRISCgphdmF0YXJfdXJsGAIgASgJIigKEVN0YXJ0TG9naW5SZXF1ZXN0EhMKC2ZvcndhcmRfdXJsGAEgASgJIiYKElN0YXJ0TG9naW5SZXNwb25zZRIQCghhdXRoX3VybBgBIAEoCSIWChRDb21wbGV0ZUxvZ2luUmVxdWVzdCJMChVDb21wbGV0ZUxvZ2luUmVzcG9uc2USEAoIY29tcGxldGUYASABKAgSIQoEdXNlchgCIAEoCzITLmF1dG92b2x1bWUudjEuVXNlciITChFHZXRTZXNzaW9uUmVxdWVzdCI3ChJHZXRTZXNzaW9uUmVzcG9uc2USIQoEdXNlchgBIAEoCzITLmF1dG92b2x1bWUudjEuVXNlciIPCg1Mb2dvdXRSZXF1ZXN0IhAKDkxvZ291dFJlc3BvbnNlMtYCCgtBdXRoU2VydmljZRJRCgpTdGFydExvZ2luEiAuYXV0b3ZvbHVtZS52MS5TdGFydExvZ2luUmVxdWVzdBohLmF1dG92b2x1bWUudjEuU3RhcnRMb2dpblJlc3BvbnNlEloKDUNvbXBsZXRlTG9naW4SIy5hdXRvdm9sdW1lLnYxLkNvbXBsZXRlTG9naW5SZXF1ZXN0GiQuYXV0b3ZvbHVtZS52MS5Db21wbGV0ZUxvZ2luUmVzcG9uc2USUQoKR2V0U2Vzc2lvbhIgLmF1dG92b2x1bWUudjEuR2V0U2Vzc2lvblJlcXVlc3QaIS5hdXRvdm9sdW1lLnYxLkdldFNlc3Npb25SZXNwb25zZRJFCgZMb2dvdXQSHC5hdXRvdm9sdW1lLnYxLkxvZ291dFJlcXVlc3QaHS5hdXRvdm9sdW1lLnYxLkxvZ291dFJlc3BvbnNlQrEBChFjb20uYXV0b3ZvbHVtZS52MUIJQXV0aFByb3RvUAFaPGdpdGh1Yi5jb20vay1ib3lsZS9hdXRvdm9sdW1lL2dlbi9hdXRvdm9sdW1lL3YxO2F1dG92b2x1bWV2MaICA0FYWKoCDUF1dG92b2x1bWUuVjHKAg1BdXRvdm9sdW1lXFYx4gIZQXV0b3ZvbHVtZVxWMVxHUEJNZXRhZGF0YeoCDkF1dG92b2x1bWU6OlYxYgZwcm90bzM");
+  fileDesc("ChhhdXRvdm9sdW1lL3YxL2F1dGgucHJvdG8SDWF1dG92b2x1bWUudjEiLAoEVXNlchIQCgh1c2VybmFtZRgBIAEoCRISCgphdmF0YXJfdXJsGAIgASgJIhMKEVN0YXJ0TG9naW5SZXF1ZXN0IjgKElN0YXJ0TG9naW5SZXNwb25zZRIQCghhdXRoX3VybBgBIAEoCRIQCghsb2dpbl9pZBgCIAEoCSIoChRDb21wbGV0ZUxvZ2luUmVxdWVzdBIQCghsb2dpbl9pZBgBIAEoCSJMChVDb21wbGV0ZUxvZ2luUmVzcG9uc2USEAoIY29tcGxldGUYASABKAgSIQoEdXNlchgCIAEoCzITLmF1dG92b2x1bWUudjEuVXNlciITChFHZXRTZXNzaW9uUmVxdWVzdCI3ChJHZXRTZXNzaW9uUmVzcG9uc2USIQoEdXNlchgBIAEoCzITLmF1dG92b2x1bWUudjEuVXNlciIPCg1Mb2dvdXRSZXF1ZXN0IhAKDkxvZ291dFJlc3BvbnNlMtYCCgtBdXRoU2VydmljZRJRCgpTdGFydExvZ2luEiAuYXV0b3ZvbHVtZS52MS5TdGFydExvZ2luUmVxdWVzdBohLmF1dG92b2x1bWUudjEuU3RhcnRMb2dpblJlc3BvbnNlEloKDUNvbXBsZXRlTG9naW4SIy5hdXRvdm9sdW1lLnYxLkNvbXBsZXRlTG9naW5SZXF1ZXN0GiQuYXV0b3ZvbHVtZS52MS5Db21wbGV0ZUxvZ2luUmVzcG9uc2USUQoKR2V0U2Vzc2lvbhIgLmF1dG92b2x1bWUudjEuR2V0U2Vzc2lvblJlcXVlc3QaIS5hdXRvdm9sdW1lLnYxLkdldFNlc3Npb25SZXNwb25zZRJFCgZMb2dvdXQSHC5hdXRvdm9sdW1lLnYxLkxvZ291dFJlcXVlc3QaHS5hdXRvdm9sdW1lLnYxLkxvZ291dFJlc3BvbnNlQrEBChFjb20uYXV0b3ZvbHVtZS52MUIJQXV0aFByb3RvUAFaPGdpdGh1Yi5jb20vay1ib3lsZS9hdXRvdm9sdW1lL2dlbi9hdXRvdm9sdW1lL3YxO2F1dG92b2x1bWV2MaICA0FYWKoCDUF1dG92b2x1bWUuVjHKAg1BdXRvdm9sdW1lXFYx4gIZQXV0b3ZvbHVtZVxWMVxHUEJNZXRhZGF0YeoCDkF1dG92b2x1bWU6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message autovolume.v1.User
@@ -38,10 +38,6 @@ export const UserSchema: GenMessage<User> = /*@__PURE__*/
  * @generated from message autovolume.v1.StartLoginRequest
  */
 export type StartLoginRequest = Message<"autovolume.v1.StartLoginRequest"> & {
-  /**
-   * @generated from field: string forward_url = 1;
-   */
-  forwardUrl: string;
 };
 
 /**
@@ -59,6 +55,13 @@ export type StartLoginResponse = Message<"autovolume.v1.StartLoginResponse"> & {
    * @generated from field: string auth_url = 1;
    */
   authUrl: string;
+
+  /**
+   * Whoever holds this gets the session, so it must be random and unguessable, never the PIN id.
+   *
+   * @generated from field: string login_id = 2;
+   */
+  loginId: string;
 };
 
 /**
@@ -72,6 +75,10 @@ export const StartLoginResponseSchema: GenMessage<StartLoginResponse> = /*@__PUR
  * @generated from message autovolume.v1.CompleteLoginRequest
  */
 export type CompleteLoginRequest = Message<"autovolume.v1.CompleteLoginRequest"> & {
+  /**
+   * @generated from field: string login_id = 1;
+   */
+  loginId: string;
 };
 
 /**
@@ -164,7 +171,7 @@ export const LogoutResponseSchema: GenMessage<LogoutResponse> = /*@__PURE__*/
  */
 export const AuthService: GenService<{
   /**
-   * Also sets an HttpOnly cookie holding the PIN id, so only this browser can complete the login.
+   * The frontend opens auth_url in a popup and closes it itself, so auth_url needs no forwardUrl.
    *
    * @generated from rpc autovolume.v1.AuthService.StartLogin
    */
@@ -174,7 +181,7 @@ export const AuthService: GenService<{
     output: typeof StartLoginResponseSchema;
   },
   /**
-   * Polled until complete. CodeNotFound once the PIN is used or expired.
+   * Polled until complete. CodeNotFound for an unknown, used or expired login_id.
    * CodePermissionDenied if a server is selected and this account can't access it;
    * before a server is selected, any account may sign in.
    *

@@ -20,7 +20,7 @@ const unreachableTvAddress = 'offline'
 
 interface State {
   loggedIn: boolean
-  pendingLogin: boolean
+  pendingLoginId?: string
   loginPolls: number
   serverId?: string
   playerId?: string
@@ -34,7 +34,7 @@ interface State {
 const state: State = load()
 
 function load(): State {
-  const initial: State = { loggedIn: false, pendingLogin: false, loginPolls: 0, tvVolume: 20, rules: initialRules }
+  const initial: State = { loggedIn: false, loginPolls: 0, tvVolume: 20, rules: initialRules }
   const saved = localStorage.getItem(mockStorageKey)
   return saved ? { ...initial, ...(JSON.parse(saved) as Partial<State>) } : initial
 }
@@ -180,22 +180,22 @@ function snapshot(): MessageInitShape<typeof WatchNowPlayingResponseSchema> {
 export function createMockTransport(): Transport {
   return createRouterTransport(({ service }) => {
     service(AuthService, {
-      async startLogin({ forwardUrl }) {
+      async startLogin() {
         await delay()
-        state.pendingLogin = true
+        state.pendingLoginId = crypto.randomUUID()
         state.loginPolls = 0
         commit()
-        return { authUrl: forwardUrl }
+        return { authUrl: 'about:blank', loginId: state.pendingLoginId }
       },
-      async completeLogin() {
+      async completeLogin({ loginId }) {
         await delay()
-        if (!state.pendingLogin) throw new ConnectError('No sign-in in progress.', Code.NotFound)
+        if (!loginId || loginId !== state.pendingLoginId) throw new ConnectError('No sign-in in progress.', Code.NotFound)
         state.loginPolls++
         if (state.loginPolls < 2) {
           commit()
           return { complete: false }
         }
-        state.pendingLogin = false
+        state.pendingLoginId = undefined
         state.loggedIn = true
         commit()
         return { complete: true, user }
