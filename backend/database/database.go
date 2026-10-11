@@ -1,61 +1,51 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"embed"
-	"errors"
 
-	"github.com/golang-migrate/migrate/v4/source/iofs"
-	_ "github.com/lib/pq"
-
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/bun/migrate"
 )
 
 //go:embed migrations/*.sql
-var migrations embed.FS
+var migrationFiles embed.FS
 
 type Database struct {
-	m  *migrate.Migrate
-	db *sql.DB
+	db *bun.DB
 }
 
 func New(connection string) (*Database, error) {
-	db, err := sql.Open("postgres", connection)
-	if err != nil {
-		return nil, err
-	}
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connection)))
+	if err := sqldb.Ping(); err != nil {
 		return nil, err
 	}
 
-	d, err := iofs.New(migrations, "migrations")
-	if err != nil {
-		return nil, err
-	}
-
-	m, err := migrate.NewWithInstance("iofs", d, "postgres", driver)
-	if err != nil {
-		return nil, err
-	}
 	return &Database{
-		m:  m,
-		db: db,
+		db: bun.NewDB(sqldb, pgdialect.New()),
 	}, nil
 }
 
 func (db *Database) Migrate() error {
-	if err := db.m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+	ctx := context.Background()
+
+	migrations := migrate.NewMigrations()
+	if err := migrations.Discover(migrationFiles); err != nil {
 		return err
 	}
 
-	return nil
+	migrator := migrate.NewMigrator(db.db, migrations, migrate.WithMarkAppliedOnSuccess(true))
+	if err := migrator.Init(ctx); err != nil {
+		return err
+	}
+
+	_, err := migrator.Migrate(ctx)
+	return err
 }
 
 func (db *Database) Close() error {
-	if _, err := db.m.Close(); err != nil {
-		return err
-	}
 	return db.db.Close()
 }
