@@ -11,10 +11,10 @@ import (
 	"github.com/k-boyle/autovolume/plex"
 )
 
-func (a authServiceHandler) StartLogin(ctx context.Context, req *connect.Request[StartLoginRequest]) (*connect.Response[StartLoginResponse], error) {
+func (a authServiceHandler) StartLogin(ctx context.Context, _ *connect.Request[StartLoginRequest]) (*connect.Response[StartLoginResponse], error) {
 	pin, err := a.plex.CreatePin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeUnknown, err)
 	}
 
 	pending := &database.PendingLogin{
@@ -25,12 +25,12 @@ func (a authServiceHandler) StartLogin(ctx context.Context, req *connect.Request
 		ExpiresAt: pin.ExpiresAt,
 	}
 	if err := a.db.InsertPendingLogin(ctx, pending); err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeUnknown, err)
 	}
 
 	authUrl := fmt.Sprintf(
 		"%s/auth#?clientID=%s&code=%s&context%%5Bdevice%%5D%%5Bproduct%%5D=AutoVolume",
-		plex.AppUrl,
+		plex.Url,
 		pin.ClientIdentifier,
 		pin.Code,
 	)

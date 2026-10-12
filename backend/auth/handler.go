@@ -24,10 +24,6 @@ func NewHandler(db *database.Database, plex *plex.Client) service.AuthServiceHan
 	}
 }
 
-func (a authServiceHandler) CompleteLogin(ctx context.Context, req *connect.Request[CompleteLoginRequest]) (*connect.Response[CompleteLoginResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, nil)
-}
-
 func (a authServiceHandler) GetSession(ctx context.Context, req *connect.Request[GetSessionRequest]) (*connect.Response[GetSessionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 }

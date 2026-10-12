@@ -9,7 +9,8 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"net/http/cookiejar"
+	"os"
+	"os/signal"
 	"path"
 	"strings"
 
@@ -29,7 +30,8 @@ import (
 var web embed.FS
 
 func main() {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
 	v := viper.New()
 	config, err := LoadConfig(v)
@@ -60,7 +62,6 @@ func main() {
 	}
 	pub, prv := getKeys(settings)
 
-	http.DefaultClient.Jar, _ = cookiejar.New(nil)
 	client, err := plex.New(http.DefaultClient, settings.PlexClientId, pub, prv)
 	if err != nil {
 		log.Fatal("failed to create plex client - ", err)

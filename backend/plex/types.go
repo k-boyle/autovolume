@@ -9,6 +9,18 @@ type Pin struct {
 	// utc timestamps
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
+
+	AuthToken *string `json:"authToken,omitempty"`
+}
+
+type Users struct {
+	Subscription bool   `json:"subscription"`
+	Users        []User `json:"users"`
+}
+
+type User struct {
+	Username  string `json:"username"`
+	AvatarUrl string `json:"thumb"`
 }
 
 type jwk struct {
