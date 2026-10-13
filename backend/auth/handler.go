@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/k-boyle/autovolume/database"
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
 	service "github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
@@ -24,6 +24,6 @@ func NewHandler(db *database.Database, plex *plex.Client) service.AuthServiceHan
 	}
 }
 
-func (a authServiceHandler) Logout(ctx context.Context, req *connect.Request[LogoutRequest]) (*connect.Response[LogoutResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, nil)
+func (a authServiceHandler) Logout(ctx context.Context, req *LogoutRequest) (*LogoutResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }

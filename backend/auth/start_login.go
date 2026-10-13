@@ -5,16 +5,16 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/k-boyle/autovolume/database"
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
 	"github.com/k-boyle/autovolume/plex"
 )
 
-func (a authServiceHandler) StartLogin(ctx context.Context, _ *connect.Request[StartLoginRequest]) (*connect.Response[StartLoginResponse], error) {
+func (a authServiceHandler) StartLogin(ctx context.Context, _ *StartLoginRequest) (*StartLoginResponse, error) {
 	pin, err := a.plex.CreatePin(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnknown, err)
+		return nil, connect.NewError(connect.CodeUnknown, "failed to create pin").WithCause(err)
 	}
 
 	pending := &database.PendingLogin{
@@ -25,7 +25,7 @@ func (a authServiceHandler) StartLogin(ctx context.Context, _ *connect.Request[S
 		ExpiresAt: pin.ExpiresAt,
 	}
 	if err := a.db.InsertPendingLogin(ctx, pending); err != nil {
-		return nil, connect.NewError(connect.CodeUnknown, err)
+		return nil, connect.NewError(connect.CodeUnknown, "failed to insert pending login").WithCause(err)
 	}
 
 	authUrl := fmt.Sprintf(
@@ -34,10 +34,8 @@ func (a authServiceHandler) StartLogin(ctx context.Context, _ *connect.Request[S
 		pin.ClientIdentifier,
 		pin.Code,
 	)
-	return &connect.Response[StartLoginResponse]{
-		Msg: &StartLoginResponse{
-			AuthUrl: authUrl,
-			LoginId: pending.Id,
-		},
+	return &StartLoginResponse{
+		AuthUrl: authUrl,
+		LoginId: pending.Id,
 	}, nil
 }

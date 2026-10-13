@@ -5,190 +5,200 @@
 package autovolumev1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/k-boyle/autovolume/gen/autovolume/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// TvServiceName is the fully-qualified name of the TvService service.
 	TvServiceName = "autovolume.v1.TvService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// TvServiceGetTvConfigProcedure is the fully-qualified name of the TvService's GetTvConfig RPC.
+	// TvServiceGetTvConfigProcedure is the procedure name of the TvService's GetTvConfig RPC.
 	TvServiceGetTvConfigProcedure = "/autovolume.v1.TvService/GetTvConfig"
-	// TvServiceUpdateTvConfigProcedure is the fully-qualified name of the TvService's UpdateTvConfig
-	// RPC.
+	// TvServiceUpdateTvConfigProcedure is the procedure name of the TvService's UpdateTvConfig RPC.
 	TvServiceUpdateTvConfigProcedure = "/autovolume.v1.TvService/UpdateTvConfig"
-	// TvServiceTestTvConnectionProcedure is the fully-qualified name of the TvService's
-	// TestTvConnection RPC.
+	// TvServiceTestTvConnectionProcedure is the procedure name of the TvService's TestTvConnection RPC.
 	TvServiceTestTvConnectionProcedure = "/autovolume.v1.TvService/TestTvConnection"
-	// TvServiceSetTvVolumeProcedure is the fully-qualified name of the TvService's SetTvVolume RPC.
+	// TvServiceSetTvVolumeProcedure is the procedure name of the TvService's SetTvVolume RPC.
 	TvServiceSetTvVolumeProcedure = "/autovolume.v1.TvService/SetTvVolume"
+)
+
+var (
+	tvServiceGetTvConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_tv_proto.Services().ByName("TvService").Methods().ByName("GetTvConfig"),
+			Procedure:  TvServiceGetTvConfigProcedure,
+		}
+	})
+	tvServiceUpdateTvConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_tv_proto.Services().ByName("TvService").Methods().ByName("UpdateTvConfig"),
+			Procedure:  TvServiceUpdateTvConfigProcedure,
+		}
+	})
+	tvServiceTestTvConnectionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_tv_proto.Services().ByName("TvService").Methods().ByName("TestTvConnection"),
+			Procedure:  TvServiceTestTvConnectionProcedure,
+		}
+	})
+	tvServiceSetTvVolumeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_tv_proto.Services().ByName("TvService").Methods().ByName("SetTvVolume"),
+			Procedure:  TvServiceSetTvVolumeProcedure,
+		}
+	})
 )
 
 // TvServiceClient is a client for the autovolume.v1.TvService service.
 type TvServiceClient interface {
-	GetTvConfig(context.Context, *connect.Request[v1.GetTvConfigRequest]) (*connect.Response[v1.GetTvConfigResponse], error)
-	UpdateTvConfig(context.Context, *connect.Request[v1.UpdateTvConfigRequest]) (*connect.Response[v1.UpdateTvConfigResponse], error)
-	TestTvConnection(context.Context, *connect.Request[v1.TestTvConnectionRequest]) (*connect.Response[v1.TestTvConnectionResponse], error)
-	SetTvVolume(context.Context, *connect.Request[v1.SetTvVolumeRequest]) (*connect.Response[v1.SetTvVolumeResponse], error)
+	GetTvConfig(context.Context, *v1.GetTvConfigRequest) (*v1.GetTvConfigResponse, error)
+	UpdateTvConfig(context.Context, *v1.UpdateTvConfigRequest) (*v1.UpdateTvConfigResponse, error)
+	TestTvConnection(context.Context, *v1.TestTvConnectionRequest) (*v1.TestTvConnectionResponse, error)
+	SetTvVolume(context.Context, *v1.SetTvVolumeRequest) (*v1.SetTvVolumeResponse, error)
 }
 
-// NewTvServiceClient constructs a client for the autovolume.v1.TvService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewTvServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TvServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	tvServiceMethods := v1.File_autovolume_v1_tv_proto.Services().ByName("TvService").Methods()
-	return &tvServiceClient{
-		getTvConfig: connect.NewClient[v1.GetTvConfigRequest, v1.GetTvConfigResponse](
-			httpClient,
-			baseURL+TvServiceGetTvConfigProcedure,
-			connect.WithSchema(tvServiceMethods.ByName("GetTvConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		updateTvConfig: connect.NewClient[v1.UpdateTvConfigRequest, v1.UpdateTvConfigResponse](
-			httpClient,
-			baseURL+TvServiceUpdateTvConfigProcedure,
-			connect.WithSchema(tvServiceMethods.ByName("UpdateTvConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		testTvConnection: connect.NewClient[v1.TestTvConnectionRequest, v1.TestTvConnectionResponse](
-			httpClient,
-			baseURL+TvServiceTestTvConnectionProcedure,
-			connect.WithSchema(tvServiceMethods.ByName("TestTvConnection")),
-			connect.WithClientOptions(opts...),
-		),
-		setTvVolume: connect.NewClient[v1.SetTvVolumeRequest, v1.SetTvVolumeResponse](
-			httpClient,
-			baseURL+TvServiceSetTvVolumeProcedure,
-			connect.WithSchema(tvServiceMethods.ByName("SetTvVolume")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// tvServiceClient implements TvServiceClient.
-type tvServiceClient struct {
-	getTvConfig      *connect.Client[v1.GetTvConfigRequest, v1.GetTvConfigResponse]
-	updateTvConfig   *connect.Client[v1.UpdateTvConfigRequest, v1.UpdateTvConfigResponse]
-	testTvConnection *connect.Client[v1.TestTvConnectionRequest, v1.TestTvConnectionResponse]
-	setTvVolume      *connect.Client[v1.SetTvVolumeRequest, v1.SetTvVolumeResponse]
-}
-
-// GetTvConfig calls autovolume.v1.TvService.GetTvConfig.
-func (c *tvServiceClient) GetTvConfig(ctx context.Context, req *connect.Request[v1.GetTvConfigRequest]) (*connect.Response[v1.GetTvConfigResponse], error) {
-	return c.getTvConfig.CallUnary(ctx, req)
-}
-
-// UpdateTvConfig calls autovolume.v1.TvService.UpdateTvConfig.
-func (c *tvServiceClient) UpdateTvConfig(ctx context.Context, req *connect.Request[v1.UpdateTvConfigRequest]) (*connect.Response[v1.UpdateTvConfigResponse], error) {
-	return c.updateTvConfig.CallUnary(ctx, req)
-}
-
-// TestTvConnection calls autovolume.v1.TvService.TestTvConnection.
-func (c *tvServiceClient) TestTvConnection(ctx context.Context, req *connect.Request[v1.TestTvConnectionRequest]) (*connect.Response[v1.TestTvConnectionResponse], error) {
-	return c.testTvConnection.CallUnary(ctx, req)
-}
-
-// SetTvVolume calls autovolume.v1.TvService.SetTvVolume.
-func (c *tvServiceClient) SetTvVolume(ctx context.Context, req *connect.Request[v1.SetTvVolumeRequest]) (*connect.Response[v1.SetTvVolumeResponse], error) {
-	return c.setTvVolume.CallUnary(ctx, req)
+// NewTvServiceClient constructs a client for the autovolume.v1.TvService service. Multiple service
+// clients may share a single connect.Client.
+func NewTvServiceClient(client *connect.Client) TvServiceClient {
+	return &tvServiceClient{client: client}
 }
 
 // TvServiceHandler is an implementation of the autovolume.v1.TvService service.
 type TvServiceHandler interface {
-	GetTvConfig(context.Context, *connect.Request[v1.GetTvConfigRequest]) (*connect.Response[v1.GetTvConfigResponse], error)
-	UpdateTvConfig(context.Context, *connect.Request[v1.UpdateTvConfigRequest]) (*connect.Response[v1.UpdateTvConfigResponse], error)
-	TestTvConnection(context.Context, *connect.Request[v1.TestTvConnectionRequest]) (*connect.Response[v1.TestTvConnectionResponse], error)
-	SetTvVolume(context.Context, *connect.Request[v1.SetTvVolumeRequest]) (*connect.Response[v1.SetTvVolumeResponse], error)
+	GetTvConfig(context.Context, *v1.GetTvConfigRequest) (*v1.GetTvConfigResponse, error)
+	UpdateTvConfig(context.Context, *v1.UpdateTvConfigRequest) (*v1.UpdateTvConfigResponse, error)
+	TestTvConnection(context.Context, *v1.TestTvConnectionRequest) (*v1.TestTvConnectionResponse, error)
+	SetTvVolume(context.Context, *v1.SetTvVolumeRequest) (*v1.SetTvVolumeResponse, error)
 }
 
-// NewTvServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewTvServiceHandler(svc TvServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	tvServiceMethods := v1.File_autovolume_v1_tv_proto.Services().ByName("TvService").Methods()
-	tvServiceGetTvConfigHandler := connect.NewUnaryHandler(
-		TvServiceGetTvConfigProcedure,
-		svc.GetTvConfig,
-		connect.WithSchema(tvServiceMethods.ByName("GetTvConfig")),
-		connect.WithHandlerOptions(opts...),
+// RegisterTvServiceHandler registers svc as the autovolume.v1.TvService implementation on server.
+func RegisterTvServiceHandler(server *connect.Server, svc TvServiceHandler) {
+	adapter := tvServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: tvServiceGetTvConfigSpec(), Handler: adapter.getTvConfig},
+		connect.Method{Spec: tvServiceUpdateTvConfigSpec(), Handler: adapter.updateTvConfig},
+		connect.Method{Spec: tvServiceTestTvConnectionSpec(), Handler: adapter.testTvConnection},
+		connect.Method{Spec: tvServiceSetTvVolumeSpec(), Handler: adapter.setTvVolume},
 	)
-	tvServiceUpdateTvConfigHandler := connect.NewUnaryHandler(
-		TvServiceUpdateTvConfigProcedure,
-		svc.UpdateTvConfig,
-		connect.WithSchema(tvServiceMethods.ByName("UpdateTvConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	tvServiceTestTvConnectionHandler := connect.NewUnaryHandler(
-		TvServiceTestTvConnectionProcedure,
-		svc.TestTvConnection,
-		connect.WithSchema(tvServiceMethods.ByName("TestTvConnection")),
-		connect.WithHandlerOptions(opts...),
-	)
-	tvServiceSetTvVolumeHandler := connect.NewUnaryHandler(
-		TvServiceSetTvVolumeProcedure,
-		svc.SetTvVolume,
-		connect.WithSchema(tvServiceMethods.ByName("SetTvVolume")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/autovolume.v1.TvService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case TvServiceGetTvConfigProcedure:
-			tvServiceGetTvConfigHandler.ServeHTTP(w, r)
-		case TvServiceUpdateTvConfigProcedure:
-			tvServiceUpdateTvConfigHandler.ServeHTTP(w, r)
-		case TvServiceTestTvConnectionProcedure:
-			tvServiceTestTvConnectionHandler.ServeHTTP(w, r)
-		case TvServiceSetTvVolumeProcedure:
-			tvServiceSetTvVolumeHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedTvServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedTvServiceHandler struct{}
 
-func (UnimplementedTvServiceHandler) GetTvConfig(context.Context, *connect.Request[v1.GetTvConfigRequest]) (*connect.Response[v1.GetTvConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.TvService.GetTvConfig is not implemented"))
+func (UnimplementedTvServiceHandler) GetTvConfig(context.Context, *v1.GetTvConfigRequest) (*v1.GetTvConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.TvService.GetTvConfig is not implemented")
 }
 
-func (UnimplementedTvServiceHandler) UpdateTvConfig(context.Context, *connect.Request[v1.UpdateTvConfigRequest]) (*connect.Response[v1.UpdateTvConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.TvService.UpdateTvConfig is not implemented"))
+func (UnimplementedTvServiceHandler) UpdateTvConfig(context.Context, *v1.UpdateTvConfigRequest) (*v1.UpdateTvConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.TvService.UpdateTvConfig is not implemented")
 }
 
-func (UnimplementedTvServiceHandler) TestTvConnection(context.Context, *connect.Request[v1.TestTvConnectionRequest]) (*connect.Response[v1.TestTvConnectionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.TvService.TestTvConnection is not implemented"))
+func (UnimplementedTvServiceHandler) TestTvConnection(context.Context, *v1.TestTvConnectionRequest) (*v1.TestTvConnectionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.TvService.TestTvConnection is not implemented")
 }
 
-func (UnimplementedTvServiceHandler) SetTvVolume(context.Context, *connect.Request[v1.SetTvVolumeRequest]) (*connect.Response[v1.SetTvVolumeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.TvService.SetTvVolume is not implemented"))
+func (UnimplementedTvServiceHandler) SetTvVolume(context.Context, *v1.SetTvVolumeRequest) (*v1.SetTvVolumeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.TvService.SetTvVolume is not implemented")
+}
+
+type tvServiceClient struct {
+	client *connect.Client
+}
+
+func (c *tvServiceClient) GetTvConfig(ctx context.Context, req *v1.GetTvConfigRequest) (*v1.GetTvConfigResponse, error) {
+	var res v1.GetTvConfigResponse
+	if err := c.client.CallUnary(ctx, tvServiceGetTvConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tvServiceClient) UpdateTvConfig(ctx context.Context, req *v1.UpdateTvConfigRequest) (*v1.UpdateTvConfigResponse, error) {
+	var res v1.UpdateTvConfigResponse
+	if err := c.client.CallUnary(ctx, tvServiceUpdateTvConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tvServiceClient) TestTvConnection(ctx context.Context, req *v1.TestTvConnectionRequest) (*v1.TestTvConnectionResponse, error) {
+	var res v1.TestTvConnectionResponse
+	if err := c.client.CallUnary(ctx, tvServiceTestTvConnectionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tvServiceClient) SetTvVolume(ctx context.Context, req *v1.SetTvVolumeRequest) (*v1.SetTvVolumeResponse, error) {
+	var res v1.SetTvVolumeResponse
+	if err := c.client.CallUnary(ctx, tvServiceSetTvVolumeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type tvServiceHandler struct{ svc TvServiceHandler }
+
+func (h tvServiceHandler) getTvConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTvConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTvConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tvServiceHandler) updateTvConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateTvConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateTvConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tvServiceHandler) testTvConnection(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TestTvConnectionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.TestTvConnection(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tvServiceHandler) setTvVolume(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetTvVolumeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetTvVolume(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

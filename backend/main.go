@@ -14,6 +14,8 @@ import (
 	"path"
 	"strings"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/k-boyle/autovolume/auth"
 	"github.com/k-boyle/autovolume/database"
 	"github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
@@ -100,23 +102,14 @@ func main() {
 
 func backend(db *database.Database, plex *plex.Client) http.Handler {
 	api := http.NewServeMux()
-	pattern, handler := autovolumev1connect.NewAuthServiceHandler(auth.NewHandler(db, plex))
-	api.Handle(pattern, handler)
-
-	pattern, handler = autovolumev1connect.NewLibraryServiceHandler(library.NewHandler())
-	api.Handle(pattern, handler)
-
-	pattern, handler = autovolumev1connect.NewNowPlayingServiceHandler(playing.NewHandler())
-	api.Handle(pattern, handler)
-
-	pattern, handler = autovolumev1connect.NewSetupServiceHandler(setup.NewHandler())
-	api.Handle(pattern, handler)
-
-	pattern, handler = autovolumev1connect.NewTvServiceHandler(tv.NewHandler())
-	api.Handle(pattern, handler)
-
-	pattern, handler = autovolumev1connect.NewVolumeServiceHandler(volume.NewHandler())
-	api.Handle(pattern, handler)
+	server := connect.NewServer()
+	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, plex))
+	autovolumev1connect.RegisterLibraryServiceHandler(server, library.NewHandler())
+	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler())
+	autovolumev1connect.RegisterSetupServiceHandler(server, setup.NewHandler())
+	autovolumev1connect.RegisterTvServiceHandler(server, tv.NewHandler())
+	autovolumev1connect.RegisterVolumeServiceHandler(server, volume.NewHandler())
+	connecthttp.Mount(api, server)
 	return api
 }
 

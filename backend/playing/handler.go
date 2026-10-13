@@ -3,7 +3,8 @@ package playing
 import (
 	"context"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
 	service "github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
 )
@@ -17,6 +18,6 @@ func NewHandler() service.NowPlayingServiceHandler {
 	return nowPlayingServiceHandler{}
 }
 
-func (n nowPlayingServiceHandler) WatchNowPlaying(ctx context.Context, req *connect.Request[WatchNowPlayingRequest], rsp *connect.ServerStream[WatchNowPlayingResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, nil)
+func (n nowPlayingServiceHandler) WatchNowPlaying(ctx context.Context, request *WatchNowPlayingRequest, stream service.NowPlayingServiceWatchNowPlayingServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "not implemented")
 }

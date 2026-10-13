@@ -5,109 +5,131 @@
 package autovolumev1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/k-boyle/autovolume/gen/autovolume/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// NowPlayingServiceName is the fully-qualified name of the NowPlayingService service.
 	NowPlayingServiceName = "autovolume.v1.NowPlayingService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// NowPlayingServiceWatchNowPlayingProcedure is the fully-qualified name of the NowPlayingService's
+	// NowPlayingServiceWatchNowPlayingProcedure is the procedure name of the NowPlayingService's
 	// WatchNowPlaying RPC.
 	NowPlayingServiceWatchNowPlayingProcedure = "/autovolume.v1.NowPlayingService/WatchNowPlaying"
+)
+
+var (
+	nowPlayingServiceWatchNowPlayingSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_autovolume_v1_now_playing_proto.Services().ByName("NowPlayingService").Methods().ByName("WatchNowPlaying"),
+			Procedure:  NowPlayingServiceWatchNowPlayingProcedure,
+		}
+	})
 )
 
 // NowPlayingServiceClient is a client for the autovolume.v1.NowPlayingService service.
 type NowPlayingServiceClient interface {
 	// Sends a full snapshot immediately and whenever anything in it changes.
 	// Re-send at least every 30s so idle proxies don't drop the stream.
-	WatchNowPlaying(context.Context, *connect.Request[v1.WatchNowPlayingRequest]) (*connect.ServerStreamForClient[v1.WatchNowPlayingResponse], error)
+	WatchNowPlaying(context.Context, *v1.WatchNowPlayingRequest) (NowPlayingServiceWatchNowPlayingClientStream, error)
 }
 
 // NewNowPlayingServiceClient constructs a client for the autovolume.v1.NowPlayingService service.
-// By default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped
-// responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewNowPlayingServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) NowPlayingServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	nowPlayingServiceMethods := v1.File_autovolume_v1_now_playing_proto.Services().ByName("NowPlayingService").Methods()
-	return &nowPlayingServiceClient{
-		watchNowPlaying: connect.NewClient[v1.WatchNowPlayingRequest, v1.WatchNowPlayingResponse](
-			httpClient,
-			baseURL+NowPlayingServiceWatchNowPlayingProcedure,
-			connect.WithSchema(nowPlayingServiceMethods.ByName("WatchNowPlaying")),
-			connect.WithClientOptions(opts...),
-		),
+// Multiple service clients may share a single connect.Client.
+func NewNowPlayingServiceClient(client *connect.Client) NowPlayingServiceClient {
+	return &nowPlayingServiceClient{client: client}
+}
+
+// NowPlayingServiceWatchNowPlayingClientStream is the client stream for the NowPlayingService's
+// WatchNowPlaying RPC.
+type NowPlayingServiceWatchNowPlayingClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s NowPlayingServiceWatchNowPlayingClientStream) Receive() (*v1.WatchNowPlayingResponse, error) {
+	var res v1.WatchNowPlayingResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// nowPlayingServiceClient implements NowPlayingServiceClient.
-type nowPlayingServiceClient struct {
-	watchNowPlaying *connect.Client[v1.WatchNowPlayingRequest, v1.WatchNowPlayingResponse]
-}
-
-// WatchNowPlaying calls autovolume.v1.NowPlayingService.WatchNowPlaying.
-func (c *nowPlayingServiceClient) WatchNowPlaying(ctx context.Context, req *connect.Request[v1.WatchNowPlayingRequest]) (*connect.ServerStreamForClient[v1.WatchNowPlayingResponse], error) {
-	return c.watchNowPlaying.CallServerStream(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s NowPlayingServiceWatchNowPlayingClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // NowPlayingServiceHandler is an implementation of the autovolume.v1.NowPlayingService service.
 type NowPlayingServiceHandler interface {
 	// Sends a full snapshot immediately and whenever anything in it changes.
 	// Re-send at least every 30s so idle proxies don't drop the stream.
-	WatchNowPlaying(context.Context, *connect.Request[v1.WatchNowPlayingRequest], *connect.ServerStream[v1.WatchNowPlayingResponse]) error
+	WatchNowPlaying(context.Context, *v1.WatchNowPlayingRequest, NowPlayingServiceWatchNowPlayingServerStream) error
 }
 
-// NewNowPlayingServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewNowPlayingServiceHandler(svc NowPlayingServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	nowPlayingServiceMethods := v1.File_autovolume_v1_now_playing_proto.Services().ByName("NowPlayingService").Methods()
-	nowPlayingServiceWatchNowPlayingHandler := connect.NewServerStreamHandler(
-		NowPlayingServiceWatchNowPlayingProcedure,
-		svc.WatchNowPlaying,
-		connect.WithSchema(nowPlayingServiceMethods.ByName("WatchNowPlaying")),
-		connect.WithHandlerOptions(opts...),
+// RegisterNowPlayingServiceHandler registers svc as the autovolume.v1.NowPlayingService
+// implementation on server.
+func RegisterNowPlayingServiceHandler(server *connect.Server, svc NowPlayingServiceHandler) {
+	adapter := nowPlayingServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: nowPlayingServiceWatchNowPlayingSpec(), Handler: adapter.watchNowPlaying},
 	)
-	return "/autovolume.v1.NowPlayingService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case NowPlayingServiceWatchNowPlayingProcedure:
-			nowPlayingServiceWatchNowPlayingHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// NowPlayingServiceWatchNowPlayingServerStream is the server stream for the NowPlayingService's
+// WatchNowPlaying RPC.
+type NowPlayingServiceWatchNowPlayingServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s NowPlayingServiceWatchNowPlayingServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s NowPlayingServiceWatchNowPlayingServerStream) Send(res *v1.WatchNowPlayingResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedNowPlayingServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedNowPlayingServiceHandler struct{}
 
-func (UnimplementedNowPlayingServiceHandler) WatchNowPlaying(context.Context, *connect.Request[v1.WatchNowPlayingRequest], *connect.ServerStream[v1.WatchNowPlayingResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.NowPlayingService.WatchNowPlaying is not implemented"))
+func (UnimplementedNowPlayingServiceHandler) WatchNowPlaying(context.Context, *v1.WatchNowPlayingRequest, NowPlayingServiceWatchNowPlayingServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "autovolume.v1.NowPlayingService.WatchNowPlaying is not implemented")
+}
+
+type nowPlayingServiceClient struct {
+	client *connect.Client
+}
+
+func (c *nowPlayingServiceClient) WatchNowPlaying(ctx context.Context, req *v1.WatchNowPlayingRequest) (NowPlayingServiceWatchNowPlayingClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, nowPlayingServiceWatchNowPlayingSpec(), req)
+	if err != nil {
+		return NowPlayingServiceWatchNowPlayingClientStream{}, err
+	}
+	return NowPlayingServiceWatchNowPlayingClientStream{stream: stream}, nil
+}
+
+type nowPlayingServiceHandler struct{ svc NowPlayingServiceHandler }
+
+func (h nowPlayingServiceHandler) watchNowPlaying(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.WatchNowPlayingRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchNowPlaying(ctx, &req, NowPlayingServiceWatchNowPlayingServerStream{stream: stream})
 }

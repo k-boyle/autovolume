@@ -5,223 +5,244 @@
 package autovolumev1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/k-boyle/autovolume/gen/autovolume/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// VolumeServiceName is the fully-qualified name of the VolumeService service.
 	VolumeServiceName = "autovolume.v1.VolumeService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// VolumeServiceSetVolumeRuleProcedure is the fully-qualified name of the VolumeService's
-	// SetVolumeRule RPC.
+	// VolumeServiceSetVolumeRuleProcedure is the procedure name of the VolumeService's SetVolumeRule
+	// RPC.
 	VolumeServiceSetVolumeRuleProcedure = "/autovolume.v1.VolumeService/SetVolumeRule"
-	// VolumeServiceClearVolumeRuleProcedure is the fully-qualified name of the VolumeService's
+	// VolumeServiceClearVolumeRuleProcedure is the procedure name of the VolumeService's
 	// ClearVolumeRule RPC.
 	VolumeServiceClearVolumeRuleProcedure = "/autovolume.v1.VolumeService/ClearVolumeRule"
-	// VolumeServiceListVolumeRulesProcedure is the fully-qualified name of the VolumeService's
+	// VolumeServiceListVolumeRulesProcedure is the procedure name of the VolumeService's
 	// ListVolumeRules RPC.
 	VolumeServiceListVolumeRulesProcedure = "/autovolume.v1.VolumeService/ListVolumeRules"
-	// VolumeServiceGetDefaultVolumeProcedure is the fully-qualified name of the VolumeService's
+	// VolumeServiceGetDefaultVolumeProcedure is the procedure name of the VolumeService's
 	// GetDefaultVolume RPC.
 	VolumeServiceGetDefaultVolumeProcedure = "/autovolume.v1.VolumeService/GetDefaultVolume"
-	// VolumeServiceSetDefaultVolumeProcedure is the fully-qualified name of the VolumeService's
+	// VolumeServiceSetDefaultVolumeProcedure is the procedure name of the VolumeService's
 	// SetDefaultVolume RPC.
 	VolumeServiceSetDefaultVolumeProcedure = "/autovolume.v1.VolumeService/SetDefaultVolume"
 )
 
+var (
+	volumeServiceSetVolumeRuleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_volume_proto.Services().ByName("VolumeService").Methods().ByName("SetVolumeRule"),
+			Procedure:  VolumeServiceSetVolumeRuleProcedure,
+		}
+	})
+	volumeServiceClearVolumeRuleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_volume_proto.Services().ByName("VolumeService").Methods().ByName("ClearVolumeRule"),
+			Procedure:  VolumeServiceClearVolumeRuleProcedure,
+		}
+	})
+	volumeServiceListVolumeRulesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_volume_proto.Services().ByName("VolumeService").Methods().ByName("ListVolumeRules"),
+			Procedure:  VolumeServiceListVolumeRulesProcedure,
+		}
+	})
+	volumeServiceGetDefaultVolumeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_volume_proto.Services().ByName("VolumeService").Methods().ByName("GetDefaultVolume"),
+			Procedure:  VolumeServiceGetDefaultVolumeProcedure,
+		}
+	})
+	volumeServiceSetDefaultVolumeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_volume_proto.Services().ByName("VolumeService").Methods().ByName("SetDefaultVolume"),
+			Procedure:  VolumeServiceSetDefaultVolumeProcedure,
+		}
+	})
+)
+
 // VolumeServiceClient is a client for the autovolume.v1.VolumeService service.
 type VolumeServiceClient interface {
-	SetVolumeRule(context.Context, *connect.Request[v1.SetVolumeRuleRequest]) (*connect.Response[v1.SetVolumeRuleResponse], error)
-	ClearVolumeRule(context.Context, *connect.Request[v1.ClearVolumeRuleRequest]) (*connect.Response[v1.ClearVolumeRuleResponse], error)
+	SetVolumeRule(context.Context, *v1.SetVolumeRuleRequest) (*v1.SetVolumeRuleResponse, error)
+	ClearVolumeRule(context.Context, *v1.ClearVolumeRuleRequest) (*v1.ClearVolumeRuleResponse, error)
 	// Sorted by title.
-	ListVolumeRules(context.Context, *connect.Request[v1.ListVolumeRulesRequest]) (*connect.Response[v1.ListVolumeRulesResponse], error)
-	GetDefaultVolume(context.Context, *connect.Request[v1.GetDefaultVolumeRequest]) (*connect.Response[v1.GetDefaultVolumeResponse], error)
-	SetDefaultVolume(context.Context, *connect.Request[v1.SetDefaultVolumeRequest]) (*connect.Response[v1.SetDefaultVolumeResponse], error)
+	ListVolumeRules(context.Context, *v1.ListVolumeRulesRequest) (*v1.ListVolumeRulesResponse, error)
+	GetDefaultVolume(context.Context, *v1.GetDefaultVolumeRequest) (*v1.GetDefaultVolumeResponse, error)
+	SetDefaultVolume(context.Context, *v1.SetDefaultVolumeRequest) (*v1.SetDefaultVolumeResponse, error)
 }
 
-// NewVolumeServiceClient constructs a client for the autovolume.v1.VolumeService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewVolumeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) VolumeServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	volumeServiceMethods := v1.File_autovolume_v1_volume_proto.Services().ByName("VolumeService").Methods()
-	return &volumeServiceClient{
-		setVolumeRule: connect.NewClient[v1.SetVolumeRuleRequest, v1.SetVolumeRuleResponse](
-			httpClient,
-			baseURL+VolumeServiceSetVolumeRuleProcedure,
-			connect.WithSchema(volumeServiceMethods.ByName("SetVolumeRule")),
-			connect.WithClientOptions(opts...),
-		),
-		clearVolumeRule: connect.NewClient[v1.ClearVolumeRuleRequest, v1.ClearVolumeRuleResponse](
-			httpClient,
-			baseURL+VolumeServiceClearVolumeRuleProcedure,
-			connect.WithSchema(volumeServiceMethods.ByName("ClearVolumeRule")),
-			connect.WithClientOptions(opts...),
-		),
-		listVolumeRules: connect.NewClient[v1.ListVolumeRulesRequest, v1.ListVolumeRulesResponse](
-			httpClient,
-			baseURL+VolumeServiceListVolumeRulesProcedure,
-			connect.WithSchema(volumeServiceMethods.ByName("ListVolumeRules")),
-			connect.WithClientOptions(opts...),
-		),
-		getDefaultVolume: connect.NewClient[v1.GetDefaultVolumeRequest, v1.GetDefaultVolumeResponse](
-			httpClient,
-			baseURL+VolumeServiceGetDefaultVolumeProcedure,
-			connect.WithSchema(volumeServiceMethods.ByName("GetDefaultVolume")),
-			connect.WithClientOptions(opts...),
-		),
-		setDefaultVolume: connect.NewClient[v1.SetDefaultVolumeRequest, v1.SetDefaultVolumeResponse](
-			httpClient,
-			baseURL+VolumeServiceSetDefaultVolumeProcedure,
-			connect.WithSchema(volumeServiceMethods.ByName("SetDefaultVolume")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// volumeServiceClient implements VolumeServiceClient.
-type volumeServiceClient struct {
-	setVolumeRule    *connect.Client[v1.SetVolumeRuleRequest, v1.SetVolumeRuleResponse]
-	clearVolumeRule  *connect.Client[v1.ClearVolumeRuleRequest, v1.ClearVolumeRuleResponse]
-	listVolumeRules  *connect.Client[v1.ListVolumeRulesRequest, v1.ListVolumeRulesResponse]
-	getDefaultVolume *connect.Client[v1.GetDefaultVolumeRequest, v1.GetDefaultVolumeResponse]
-	setDefaultVolume *connect.Client[v1.SetDefaultVolumeRequest, v1.SetDefaultVolumeResponse]
-}
-
-// SetVolumeRule calls autovolume.v1.VolumeService.SetVolumeRule.
-func (c *volumeServiceClient) SetVolumeRule(ctx context.Context, req *connect.Request[v1.SetVolumeRuleRequest]) (*connect.Response[v1.SetVolumeRuleResponse], error) {
-	return c.setVolumeRule.CallUnary(ctx, req)
-}
-
-// ClearVolumeRule calls autovolume.v1.VolumeService.ClearVolumeRule.
-func (c *volumeServiceClient) ClearVolumeRule(ctx context.Context, req *connect.Request[v1.ClearVolumeRuleRequest]) (*connect.Response[v1.ClearVolumeRuleResponse], error) {
-	return c.clearVolumeRule.CallUnary(ctx, req)
-}
-
-// ListVolumeRules calls autovolume.v1.VolumeService.ListVolumeRules.
-func (c *volumeServiceClient) ListVolumeRules(ctx context.Context, req *connect.Request[v1.ListVolumeRulesRequest]) (*connect.Response[v1.ListVolumeRulesResponse], error) {
-	return c.listVolumeRules.CallUnary(ctx, req)
-}
-
-// GetDefaultVolume calls autovolume.v1.VolumeService.GetDefaultVolume.
-func (c *volumeServiceClient) GetDefaultVolume(ctx context.Context, req *connect.Request[v1.GetDefaultVolumeRequest]) (*connect.Response[v1.GetDefaultVolumeResponse], error) {
-	return c.getDefaultVolume.CallUnary(ctx, req)
-}
-
-// SetDefaultVolume calls autovolume.v1.VolumeService.SetDefaultVolume.
-func (c *volumeServiceClient) SetDefaultVolume(ctx context.Context, req *connect.Request[v1.SetDefaultVolumeRequest]) (*connect.Response[v1.SetDefaultVolumeResponse], error) {
-	return c.setDefaultVolume.CallUnary(ctx, req)
+// NewVolumeServiceClient constructs a client for the autovolume.v1.VolumeService service. Multiple
+// service clients may share a single connect.Client.
+func NewVolumeServiceClient(client *connect.Client) VolumeServiceClient {
+	return &volumeServiceClient{client: client}
 }
 
 // VolumeServiceHandler is an implementation of the autovolume.v1.VolumeService service.
 type VolumeServiceHandler interface {
-	SetVolumeRule(context.Context, *connect.Request[v1.SetVolumeRuleRequest]) (*connect.Response[v1.SetVolumeRuleResponse], error)
-	ClearVolumeRule(context.Context, *connect.Request[v1.ClearVolumeRuleRequest]) (*connect.Response[v1.ClearVolumeRuleResponse], error)
+	SetVolumeRule(context.Context, *v1.SetVolumeRuleRequest) (*v1.SetVolumeRuleResponse, error)
+	ClearVolumeRule(context.Context, *v1.ClearVolumeRuleRequest) (*v1.ClearVolumeRuleResponse, error)
 	// Sorted by title.
-	ListVolumeRules(context.Context, *connect.Request[v1.ListVolumeRulesRequest]) (*connect.Response[v1.ListVolumeRulesResponse], error)
-	GetDefaultVolume(context.Context, *connect.Request[v1.GetDefaultVolumeRequest]) (*connect.Response[v1.GetDefaultVolumeResponse], error)
-	SetDefaultVolume(context.Context, *connect.Request[v1.SetDefaultVolumeRequest]) (*connect.Response[v1.SetDefaultVolumeResponse], error)
+	ListVolumeRules(context.Context, *v1.ListVolumeRulesRequest) (*v1.ListVolumeRulesResponse, error)
+	GetDefaultVolume(context.Context, *v1.GetDefaultVolumeRequest) (*v1.GetDefaultVolumeResponse, error)
+	SetDefaultVolume(context.Context, *v1.SetDefaultVolumeRequest) (*v1.SetDefaultVolumeResponse, error)
 }
 
-// NewVolumeServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewVolumeServiceHandler(svc VolumeServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	volumeServiceMethods := v1.File_autovolume_v1_volume_proto.Services().ByName("VolumeService").Methods()
-	volumeServiceSetVolumeRuleHandler := connect.NewUnaryHandler(
-		VolumeServiceSetVolumeRuleProcedure,
-		svc.SetVolumeRule,
-		connect.WithSchema(volumeServiceMethods.ByName("SetVolumeRule")),
-		connect.WithHandlerOptions(opts...),
+// RegisterVolumeServiceHandler registers svc as the autovolume.v1.VolumeService implementation on
+// server.
+func RegisterVolumeServiceHandler(server *connect.Server, svc VolumeServiceHandler) {
+	adapter := volumeServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: volumeServiceSetVolumeRuleSpec(), Handler: adapter.setVolumeRule},
+		connect.Method{Spec: volumeServiceClearVolumeRuleSpec(), Handler: adapter.clearVolumeRule},
+		connect.Method{Spec: volumeServiceListVolumeRulesSpec(), Handler: adapter.listVolumeRules},
+		connect.Method{Spec: volumeServiceGetDefaultVolumeSpec(), Handler: adapter.getDefaultVolume},
+		connect.Method{Spec: volumeServiceSetDefaultVolumeSpec(), Handler: adapter.setDefaultVolume},
 	)
-	volumeServiceClearVolumeRuleHandler := connect.NewUnaryHandler(
-		VolumeServiceClearVolumeRuleProcedure,
-		svc.ClearVolumeRule,
-		connect.WithSchema(volumeServiceMethods.ByName("ClearVolumeRule")),
-		connect.WithHandlerOptions(opts...),
-	)
-	volumeServiceListVolumeRulesHandler := connect.NewUnaryHandler(
-		VolumeServiceListVolumeRulesProcedure,
-		svc.ListVolumeRules,
-		connect.WithSchema(volumeServiceMethods.ByName("ListVolumeRules")),
-		connect.WithHandlerOptions(opts...),
-	)
-	volumeServiceGetDefaultVolumeHandler := connect.NewUnaryHandler(
-		VolumeServiceGetDefaultVolumeProcedure,
-		svc.GetDefaultVolume,
-		connect.WithSchema(volumeServiceMethods.ByName("GetDefaultVolume")),
-		connect.WithHandlerOptions(opts...),
-	)
-	volumeServiceSetDefaultVolumeHandler := connect.NewUnaryHandler(
-		VolumeServiceSetDefaultVolumeProcedure,
-		svc.SetDefaultVolume,
-		connect.WithSchema(volumeServiceMethods.ByName("SetDefaultVolume")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/autovolume.v1.VolumeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case VolumeServiceSetVolumeRuleProcedure:
-			volumeServiceSetVolumeRuleHandler.ServeHTTP(w, r)
-		case VolumeServiceClearVolumeRuleProcedure:
-			volumeServiceClearVolumeRuleHandler.ServeHTTP(w, r)
-		case VolumeServiceListVolumeRulesProcedure:
-			volumeServiceListVolumeRulesHandler.ServeHTTP(w, r)
-		case VolumeServiceGetDefaultVolumeProcedure:
-			volumeServiceGetDefaultVolumeHandler.ServeHTTP(w, r)
-		case VolumeServiceSetDefaultVolumeProcedure:
-			volumeServiceSetDefaultVolumeHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedVolumeServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedVolumeServiceHandler struct{}
 
-func (UnimplementedVolumeServiceHandler) SetVolumeRule(context.Context, *connect.Request[v1.SetVolumeRuleRequest]) (*connect.Response[v1.SetVolumeRuleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.VolumeService.SetVolumeRule is not implemented"))
+func (UnimplementedVolumeServiceHandler) SetVolumeRule(context.Context, *v1.SetVolumeRuleRequest) (*v1.SetVolumeRuleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.VolumeService.SetVolumeRule is not implemented")
 }
 
-func (UnimplementedVolumeServiceHandler) ClearVolumeRule(context.Context, *connect.Request[v1.ClearVolumeRuleRequest]) (*connect.Response[v1.ClearVolumeRuleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.VolumeService.ClearVolumeRule is not implemented"))
+func (UnimplementedVolumeServiceHandler) ClearVolumeRule(context.Context, *v1.ClearVolumeRuleRequest) (*v1.ClearVolumeRuleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.VolumeService.ClearVolumeRule is not implemented")
 }
 
-func (UnimplementedVolumeServiceHandler) ListVolumeRules(context.Context, *connect.Request[v1.ListVolumeRulesRequest]) (*connect.Response[v1.ListVolumeRulesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.VolumeService.ListVolumeRules is not implemented"))
+func (UnimplementedVolumeServiceHandler) ListVolumeRules(context.Context, *v1.ListVolumeRulesRequest) (*v1.ListVolumeRulesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.VolumeService.ListVolumeRules is not implemented")
 }
 
-func (UnimplementedVolumeServiceHandler) GetDefaultVolume(context.Context, *connect.Request[v1.GetDefaultVolumeRequest]) (*connect.Response[v1.GetDefaultVolumeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.VolumeService.GetDefaultVolume is not implemented"))
+func (UnimplementedVolumeServiceHandler) GetDefaultVolume(context.Context, *v1.GetDefaultVolumeRequest) (*v1.GetDefaultVolumeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.VolumeService.GetDefaultVolume is not implemented")
 }
 
-func (UnimplementedVolumeServiceHandler) SetDefaultVolume(context.Context, *connect.Request[v1.SetDefaultVolumeRequest]) (*connect.Response[v1.SetDefaultVolumeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.VolumeService.SetDefaultVolume is not implemented"))
+func (UnimplementedVolumeServiceHandler) SetDefaultVolume(context.Context, *v1.SetDefaultVolumeRequest) (*v1.SetDefaultVolumeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.VolumeService.SetDefaultVolume is not implemented")
+}
+
+type volumeServiceClient struct {
+	client *connect.Client
+}
+
+func (c *volumeServiceClient) SetVolumeRule(ctx context.Context, req *v1.SetVolumeRuleRequest) (*v1.SetVolumeRuleResponse, error) {
+	var res v1.SetVolumeRuleResponse
+	if err := c.client.CallUnary(ctx, volumeServiceSetVolumeRuleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *volumeServiceClient) ClearVolumeRule(ctx context.Context, req *v1.ClearVolumeRuleRequest) (*v1.ClearVolumeRuleResponse, error) {
+	var res v1.ClearVolumeRuleResponse
+	if err := c.client.CallUnary(ctx, volumeServiceClearVolumeRuleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *volumeServiceClient) ListVolumeRules(ctx context.Context, req *v1.ListVolumeRulesRequest) (*v1.ListVolumeRulesResponse, error) {
+	var res v1.ListVolumeRulesResponse
+	if err := c.client.CallUnary(ctx, volumeServiceListVolumeRulesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *volumeServiceClient) GetDefaultVolume(ctx context.Context, req *v1.GetDefaultVolumeRequest) (*v1.GetDefaultVolumeResponse, error) {
+	var res v1.GetDefaultVolumeResponse
+	if err := c.client.CallUnary(ctx, volumeServiceGetDefaultVolumeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *volumeServiceClient) SetDefaultVolume(ctx context.Context, req *v1.SetDefaultVolumeRequest) (*v1.SetDefaultVolumeResponse, error) {
+	var res v1.SetDefaultVolumeResponse
+	if err := c.client.CallUnary(ctx, volumeServiceSetDefaultVolumeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type volumeServiceHandler struct{ svc VolumeServiceHandler }
+
+func (h volumeServiceHandler) setVolumeRule(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetVolumeRuleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetVolumeRule(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h volumeServiceHandler) clearVolumeRule(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ClearVolumeRuleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ClearVolumeRule(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h volumeServiceHandler) listVolumeRules(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListVolumeRulesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListVolumeRules(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h volumeServiceHandler) getDefaultVolume(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetDefaultVolumeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetDefaultVolume(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h volumeServiceHandler) setDefaultVolume(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetDefaultVolumeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetDefaultVolume(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

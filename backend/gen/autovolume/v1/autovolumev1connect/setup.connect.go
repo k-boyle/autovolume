@@ -5,227 +5,244 @@
 package autovolumev1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/k-boyle/autovolume/gen/autovolume/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// SetupServiceName is the fully-qualified name of the SetupService service.
 	SetupServiceName = "autovolume.v1.SetupService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// SetupServiceListServersProcedure is the fully-qualified name of the SetupService's ListServers
-	// RPC.
+	// SetupServiceListServersProcedure is the procedure name of the SetupService's ListServers RPC.
 	SetupServiceListServersProcedure = "/autovolume.v1.SetupService/ListServers"
-	// SetupServiceSelectServerProcedure is the fully-qualified name of the SetupService's SelectServer
-	// RPC.
+	// SetupServiceSelectServerProcedure is the procedure name of the SetupService's SelectServer RPC.
 	SetupServiceSelectServerProcedure = "/autovolume.v1.SetupService/SelectServer"
-	// SetupServiceListPlayersProcedure is the fully-qualified name of the SetupService's ListPlayers
-	// RPC.
+	// SetupServiceListPlayersProcedure is the procedure name of the SetupService's ListPlayers RPC.
 	SetupServiceListPlayersProcedure = "/autovolume.v1.SetupService/ListPlayers"
-	// SetupServiceSelectPlayerProcedure is the fully-qualified name of the SetupService's SelectPlayer
-	// RPC.
+	// SetupServiceSelectPlayerProcedure is the procedure name of the SetupService's SelectPlayer RPC.
 	SetupServiceSelectPlayerProcedure = "/autovolume.v1.SetupService/SelectPlayer"
-	// SetupServiceGetSetupStatusProcedure is the fully-qualified name of the SetupService's
-	// GetSetupStatus RPC.
+	// SetupServiceGetSetupStatusProcedure is the procedure name of the SetupService's GetSetupStatus
+	// RPC.
 	SetupServiceGetSetupStatusProcedure = "/autovolume.v1.SetupService/GetSetupStatus"
+)
+
+var (
+	setupServiceListServersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_setup_proto.Services().ByName("SetupService").Methods().ByName("ListServers"),
+			Procedure:  SetupServiceListServersProcedure,
+		}
+	})
+	setupServiceSelectServerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_setup_proto.Services().ByName("SetupService").Methods().ByName("SelectServer"),
+			Procedure:  SetupServiceSelectServerProcedure,
+		}
+	})
+	setupServiceListPlayersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_setup_proto.Services().ByName("SetupService").Methods().ByName("ListPlayers"),
+			Procedure:  SetupServiceListPlayersProcedure,
+		}
+	})
+	setupServiceSelectPlayerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_setup_proto.Services().ByName("SetupService").Methods().ByName("SelectPlayer"),
+			Procedure:  SetupServiceSelectPlayerProcedure,
+		}
+	})
+	setupServiceGetSetupStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_setup_proto.Services().ByName("SetupService").Methods().ByName("GetSetupStatus"),
+			Procedure:  SetupServiceGetSetupStatusProcedure,
+		}
+	})
 )
 
 // SetupServiceClient is a client for the autovolume.v1.SetupService service.
 type SetupServiceClient interface {
-	ListServers(context.Context, *connect.Request[v1.ListServersRequest]) (*connect.Response[v1.ListServersResponse], error)
+	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
 	// CodePermissionDenied for servers the account doesn't own: only owners receive playback notifications.
-	SelectServer(context.Context, *connect.Request[v1.SelectServerRequest]) (*connect.Response[v1.SelectServerResponse], error)
+	SelectServer(context.Context, *v1.SelectServerRequest) (*v1.SelectServerResponse, error)
 	// plex.tv players plus any player seen in a playback session, so a TV may only appear once it has played something.
-	ListPlayers(context.Context, *connect.Request[v1.ListPlayersRequest]) (*connect.Response[v1.ListPlayersResponse], error)
+	ListPlayers(context.Context, *v1.ListPlayersRequest) (*v1.ListPlayersResponse, error)
 	// Playback on every other player is ignored.
-	SelectPlayer(context.Context, *connect.Request[v1.SelectPlayerRequest]) (*connect.Response[v1.SelectPlayerResponse], error)
-	GetSetupStatus(context.Context, *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error)
+	SelectPlayer(context.Context, *v1.SelectPlayerRequest) (*v1.SelectPlayerResponse, error)
+	GetSetupStatus(context.Context, *v1.GetSetupStatusRequest) (*v1.GetSetupStatusResponse, error)
 }
 
-// NewSetupServiceClient constructs a client for the autovolume.v1.SetupService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewSetupServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) SetupServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	setupServiceMethods := v1.File_autovolume_v1_setup_proto.Services().ByName("SetupService").Methods()
-	return &setupServiceClient{
-		listServers: connect.NewClient[v1.ListServersRequest, v1.ListServersResponse](
-			httpClient,
-			baseURL+SetupServiceListServersProcedure,
-			connect.WithSchema(setupServiceMethods.ByName("ListServers")),
-			connect.WithClientOptions(opts...),
-		),
-		selectServer: connect.NewClient[v1.SelectServerRequest, v1.SelectServerResponse](
-			httpClient,
-			baseURL+SetupServiceSelectServerProcedure,
-			connect.WithSchema(setupServiceMethods.ByName("SelectServer")),
-			connect.WithClientOptions(opts...),
-		),
-		listPlayers: connect.NewClient[v1.ListPlayersRequest, v1.ListPlayersResponse](
-			httpClient,
-			baseURL+SetupServiceListPlayersProcedure,
-			connect.WithSchema(setupServiceMethods.ByName("ListPlayers")),
-			connect.WithClientOptions(opts...),
-		),
-		selectPlayer: connect.NewClient[v1.SelectPlayerRequest, v1.SelectPlayerResponse](
-			httpClient,
-			baseURL+SetupServiceSelectPlayerProcedure,
-			connect.WithSchema(setupServiceMethods.ByName("SelectPlayer")),
-			connect.WithClientOptions(opts...),
-		),
-		getSetupStatus: connect.NewClient[v1.GetSetupStatusRequest, v1.GetSetupStatusResponse](
-			httpClient,
-			baseURL+SetupServiceGetSetupStatusProcedure,
-			connect.WithSchema(setupServiceMethods.ByName("GetSetupStatus")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// setupServiceClient implements SetupServiceClient.
-type setupServiceClient struct {
-	listServers    *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
-	selectServer   *connect.Client[v1.SelectServerRequest, v1.SelectServerResponse]
-	listPlayers    *connect.Client[v1.ListPlayersRequest, v1.ListPlayersResponse]
-	selectPlayer   *connect.Client[v1.SelectPlayerRequest, v1.SelectPlayerResponse]
-	getSetupStatus *connect.Client[v1.GetSetupStatusRequest, v1.GetSetupStatusResponse]
-}
-
-// ListServers calls autovolume.v1.SetupService.ListServers.
-func (c *setupServiceClient) ListServers(ctx context.Context, req *connect.Request[v1.ListServersRequest]) (*connect.Response[v1.ListServersResponse], error) {
-	return c.listServers.CallUnary(ctx, req)
-}
-
-// SelectServer calls autovolume.v1.SetupService.SelectServer.
-func (c *setupServiceClient) SelectServer(ctx context.Context, req *connect.Request[v1.SelectServerRequest]) (*connect.Response[v1.SelectServerResponse], error) {
-	return c.selectServer.CallUnary(ctx, req)
-}
-
-// ListPlayers calls autovolume.v1.SetupService.ListPlayers.
-func (c *setupServiceClient) ListPlayers(ctx context.Context, req *connect.Request[v1.ListPlayersRequest]) (*connect.Response[v1.ListPlayersResponse], error) {
-	return c.listPlayers.CallUnary(ctx, req)
-}
-
-// SelectPlayer calls autovolume.v1.SetupService.SelectPlayer.
-func (c *setupServiceClient) SelectPlayer(ctx context.Context, req *connect.Request[v1.SelectPlayerRequest]) (*connect.Response[v1.SelectPlayerResponse], error) {
-	return c.selectPlayer.CallUnary(ctx, req)
-}
-
-// GetSetupStatus calls autovolume.v1.SetupService.GetSetupStatus.
-func (c *setupServiceClient) GetSetupStatus(ctx context.Context, req *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error) {
-	return c.getSetupStatus.CallUnary(ctx, req)
+// NewSetupServiceClient constructs a client for the autovolume.v1.SetupService service. Multiple
+// service clients may share a single connect.Client.
+func NewSetupServiceClient(client *connect.Client) SetupServiceClient {
+	return &setupServiceClient{client: client}
 }
 
 // SetupServiceHandler is an implementation of the autovolume.v1.SetupService service.
 type SetupServiceHandler interface {
-	ListServers(context.Context, *connect.Request[v1.ListServersRequest]) (*connect.Response[v1.ListServersResponse], error)
+	ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error)
 	// CodePermissionDenied for servers the account doesn't own: only owners receive playback notifications.
-	SelectServer(context.Context, *connect.Request[v1.SelectServerRequest]) (*connect.Response[v1.SelectServerResponse], error)
+	SelectServer(context.Context, *v1.SelectServerRequest) (*v1.SelectServerResponse, error)
 	// plex.tv players plus any player seen in a playback session, so a TV may only appear once it has played something.
-	ListPlayers(context.Context, *connect.Request[v1.ListPlayersRequest]) (*connect.Response[v1.ListPlayersResponse], error)
+	ListPlayers(context.Context, *v1.ListPlayersRequest) (*v1.ListPlayersResponse, error)
 	// Playback on every other player is ignored.
-	SelectPlayer(context.Context, *connect.Request[v1.SelectPlayerRequest]) (*connect.Response[v1.SelectPlayerResponse], error)
-	GetSetupStatus(context.Context, *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error)
+	SelectPlayer(context.Context, *v1.SelectPlayerRequest) (*v1.SelectPlayerResponse, error)
+	GetSetupStatus(context.Context, *v1.GetSetupStatusRequest) (*v1.GetSetupStatusResponse, error)
 }
 
-// NewSetupServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewSetupServiceHandler(svc SetupServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	setupServiceMethods := v1.File_autovolume_v1_setup_proto.Services().ByName("SetupService").Methods()
-	setupServiceListServersHandler := connect.NewUnaryHandler(
-		SetupServiceListServersProcedure,
-		svc.ListServers,
-		connect.WithSchema(setupServiceMethods.ByName("ListServers")),
-		connect.WithHandlerOptions(opts...),
+// RegisterSetupServiceHandler registers svc as the autovolume.v1.SetupService implementation on
+// server.
+func RegisterSetupServiceHandler(server *connect.Server, svc SetupServiceHandler) {
+	adapter := setupServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: setupServiceListServersSpec(), Handler: adapter.listServers},
+		connect.Method{Spec: setupServiceSelectServerSpec(), Handler: adapter.selectServer},
+		connect.Method{Spec: setupServiceListPlayersSpec(), Handler: adapter.listPlayers},
+		connect.Method{Spec: setupServiceSelectPlayerSpec(), Handler: adapter.selectPlayer},
+		connect.Method{Spec: setupServiceGetSetupStatusSpec(), Handler: adapter.getSetupStatus},
 	)
-	setupServiceSelectServerHandler := connect.NewUnaryHandler(
-		SetupServiceSelectServerProcedure,
-		svc.SelectServer,
-		connect.WithSchema(setupServiceMethods.ByName("SelectServer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	setupServiceListPlayersHandler := connect.NewUnaryHandler(
-		SetupServiceListPlayersProcedure,
-		svc.ListPlayers,
-		connect.WithSchema(setupServiceMethods.ByName("ListPlayers")),
-		connect.WithHandlerOptions(opts...),
-	)
-	setupServiceSelectPlayerHandler := connect.NewUnaryHandler(
-		SetupServiceSelectPlayerProcedure,
-		svc.SelectPlayer,
-		connect.WithSchema(setupServiceMethods.ByName("SelectPlayer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	setupServiceGetSetupStatusHandler := connect.NewUnaryHandler(
-		SetupServiceGetSetupStatusProcedure,
-		svc.GetSetupStatus,
-		connect.WithSchema(setupServiceMethods.ByName("GetSetupStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/autovolume.v1.SetupService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case SetupServiceListServersProcedure:
-			setupServiceListServersHandler.ServeHTTP(w, r)
-		case SetupServiceSelectServerProcedure:
-			setupServiceSelectServerHandler.ServeHTTP(w, r)
-		case SetupServiceListPlayersProcedure:
-			setupServiceListPlayersHandler.ServeHTTP(w, r)
-		case SetupServiceSelectPlayerProcedure:
-			setupServiceSelectPlayerHandler.ServeHTTP(w, r)
-		case SetupServiceGetSetupStatusProcedure:
-			setupServiceGetSetupStatusHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedSetupServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedSetupServiceHandler struct{}
 
-func (UnimplementedSetupServiceHandler) ListServers(context.Context, *connect.Request[v1.ListServersRequest]) (*connect.Response[v1.ListServersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.SetupService.ListServers is not implemented"))
+func (UnimplementedSetupServiceHandler) ListServers(context.Context, *v1.ListServersRequest) (*v1.ListServersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.SetupService.ListServers is not implemented")
 }
 
-func (UnimplementedSetupServiceHandler) SelectServer(context.Context, *connect.Request[v1.SelectServerRequest]) (*connect.Response[v1.SelectServerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.SetupService.SelectServer is not implemented"))
+func (UnimplementedSetupServiceHandler) SelectServer(context.Context, *v1.SelectServerRequest) (*v1.SelectServerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.SetupService.SelectServer is not implemented")
 }
 
-func (UnimplementedSetupServiceHandler) ListPlayers(context.Context, *connect.Request[v1.ListPlayersRequest]) (*connect.Response[v1.ListPlayersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.SetupService.ListPlayers is not implemented"))
+func (UnimplementedSetupServiceHandler) ListPlayers(context.Context, *v1.ListPlayersRequest) (*v1.ListPlayersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.SetupService.ListPlayers is not implemented")
 }
 
-func (UnimplementedSetupServiceHandler) SelectPlayer(context.Context, *connect.Request[v1.SelectPlayerRequest]) (*connect.Response[v1.SelectPlayerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.SetupService.SelectPlayer is not implemented"))
+func (UnimplementedSetupServiceHandler) SelectPlayer(context.Context, *v1.SelectPlayerRequest) (*v1.SelectPlayerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.SetupService.SelectPlayer is not implemented")
 }
 
-func (UnimplementedSetupServiceHandler) GetSetupStatus(context.Context, *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.SetupService.GetSetupStatus is not implemented"))
+func (UnimplementedSetupServiceHandler) GetSetupStatus(context.Context, *v1.GetSetupStatusRequest) (*v1.GetSetupStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.SetupService.GetSetupStatus is not implemented")
+}
+
+type setupServiceClient struct {
+	client *connect.Client
+}
+
+func (c *setupServiceClient) ListServers(ctx context.Context, req *v1.ListServersRequest) (*v1.ListServersResponse, error) {
+	var res v1.ListServersResponse
+	if err := c.client.CallUnary(ctx, setupServiceListServersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *setupServiceClient) SelectServer(ctx context.Context, req *v1.SelectServerRequest) (*v1.SelectServerResponse, error) {
+	var res v1.SelectServerResponse
+	if err := c.client.CallUnary(ctx, setupServiceSelectServerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *setupServiceClient) ListPlayers(ctx context.Context, req *v1.ListPlayersRequest) (*v1.ListPlayersResponse, error) {
+	var res v1.ListPlayersResponse
+	if err := c.client.CallUnary(ctx, setupServiceListPlayersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *setupServiceClient) SelectPlayer(ctx context.Context, req *v1.SelectPlayerRequest) (*v1.SelectPlayerResponse, error) {
+	var res v1.SelectPlayerResponse
+	if err := c.client.CallUnary(ctx, setupServiceSelectPlayerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *setupServiceClient) GetSetupStatus(ctx context.Context, req *v1.GetSetupStatusRequest) (*v1.GetSetupStatusResponse, error) {
+	var res v1.GetSetupStatusResponse
+	if err := c.client.CallUnary(ctx, setupServiceGetSetupStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type setupServiceHandler struct{ svc SetupServiceHandler }
+
+func (h setupServiceHandler) listServers(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListServersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListServers(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h setupServiceHandler) selectServer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SelectServerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SelectServer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h setupServiceHandler) listPlayers(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListPlayersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPlayers(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h setupServiceHandler) selectPlayer(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SelectPlayerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SelectPlayer(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h setupServiceHandler) getSetupStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSetupStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSetupStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

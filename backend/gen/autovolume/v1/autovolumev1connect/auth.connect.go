@@ -5,197 +5,209 @@
 package autovolumev1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/k-boyle/autovolume/gen/autovolume/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// AuthServiceName is the fully-qualified name of the AuthService service.
 	AuthServiceName = "autovolume.v1.AuthService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AuthServiceStartLoginProcedure is the fully-qualified name of the AuthService's StartLogin RPC.
+	// AuthServiceStartLoginProcedure is the procedure name of the AuthService's StartLogin RPC.
 	AuthServiceStartLoginProcedure = "/autovolume.v1.AuthService/StartLogin"
-	// AuthServiceCompleteLoginProcedure is the fully-qualified name of the AuthService's CompleteLogin
-	// RPC.
+	// AuthServiceCompleteLoginProcedure is the procedure name of the AuthService's CompleteLogin RPC.
 	AuthServiceCompleteLoginProcedure = "/autovolume.v1.AuthService/CompleteLogin"
-	// AuthServiceGetSessionProcedure is the fully-qualified name of the AuthService's GetSession RPC.
+	// AuthServiceGetSessionProcedure is the procedure name of the AuthService's GetSession RPC.
 	AuthServiceGetSessionProcedure = "/autovolume.v1.AuthService/GetSession"
-	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
+	// AuthServiceLogoutProcedure is the procedure name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/autovolume.v1.AuthService/Logout"
+)
+
+var (
+	authServiceStartLoginSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("StartLogin"),
+			Procedure:  AuthServiceStartLoginProcedure,
+		}
+	})
+	authServiceCompleteLoginSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("CompleteLogin"),
+			Procedure:  AuthServiceCompleteLoginProcedure,
+		}
+	})
+	authServiceGetSessionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("GetSession"),
+			Procedure:  AuthServiceGetSessionProcedure,
+		}
+	})
+	authServiceLogoutSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("Logout"),
+			Procedure:  AuthServiceLogoutProcedure,
+		}
+	})
 )
 
 // AuthServiceClient is a client for the autovolume.v1.AuthService service.
 type AuthServiceClient interface {
 	// The frontend opens auth_url in a popup and closes it itself, so auth_url needs no forwardUrl.
-	StartLogin(context.Context, *connect.Request[v1.StartLoginRequest]) (*connect.Response[v1.StartLoginResponse], error)
+	StartLogin(context.Context, *v1.StartLoginRequest) (*v1.StartLoginResponse, error)
 	// Polled until complete. CodeNotFound for an unknown, used or expired login_id.
 	// CodePermissionDenied if a server is selected and this account can't access it;
 	// before a server is selected, any account may sign in.
-	CompleteLogin(context.Context, *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error)
-	GetSession(context.Context, *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error)
-	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
+	CompleteLogin(context.Context, *v1.CompleteLoginRequest) (*v1.CompleteLoginResponse, error)
+	GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error)
+	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
 }
 
-// NewAuthServiceClient constructs a client for the autovolume.v1.AuthService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) AuthServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	authServiceMethods := v1.File_autovolume_v1_auth_proto.Services().ByName("AuthService").Methods()
-	return &authServiceClient{
-		startLogin: connect.NewClient[v1.StartLoginRequest, v1.StartLoginResponse](
-			httpClient,
-			baseURL+AuthServiceStartLoginProcedure,
-			connect.WithSchema(authServiceMethods.ByName("StartLogin")),
-			connect.WithClientOptions(opts...),
-		),
-		completeLogin: connect.NewClient[v1.CompleteLoginRequest, v1.CompleteLoginResponse](
-			httpClient,
-			baseURL+AuthServiceCompleteLoginProcedure,
-			connect.WithSchema(authServiceMethods.ByName("CompleteLogin")),
-			connect.WithClientOptions(opts...),
-		),
-		getSession: connect.NewClient[v1.GetSessionRequest, v1.GetSessionResponse](
-			httpClient,
-			baseURL+AuthServiceGetSessionProcedure,
-			connect.WithSchema(authServiceMethods.ByName("GetSession")),
-			connect.WithClientOptions(opts...),
-		),
-		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
-			httpClient,
-			baseURL+AuthServiceLogoutProcedure,
-			connect.WithSchema(authServiceMethods.ByName("Logout")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// authServiceClient implements AuthServiceClient.
-type authServiceClient struct {
-	startLogin    *connect.Client[v1.StartLoginRequest, v1.StartLoginResponse]
-	completeLogin *connect.Client[v1.CompleteLoginRequest, v1.CompleteLoginResponse]
-	getSession    *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
-	logout        *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
-}
-
-// StartLogin calls autovolume.v1.AuthService.StartLogin.
-func (c *authServiceClient) StartLogin(ctx context.Context, req *connect.Request[v1.StartLoginRequest]) (*connect.Response[v1.StartLoginResponse], error) {
-	return c.startLogin.CallUnary(ctx, req)
-}
-
-// CompleteLogin calls autovolume.v1.AuthService.CompleteLogin.
-func (c *authServiceClient) CompleteLogin(ctx context.Context, req *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error) {
-	return c.completeLogin.CallUnary(ctx, req)
-}
-
-// GetSession calls autovolume.v1.AuthService.GetSession.
-func (c *authServiceClient) GetSession(ctx context.Context, req *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error) {
-	return c.getSession.CallUnary(ctx, req)
-}
-
-// Logout calls autovolume.v1.AuthService.Logout.
-func (c *authServiceClient) Logout(ctx context.Context, req *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {
-	return c.logout.CallUnary(ctx, req)
+// NewAuthServiceClient constructs a client for the autovolume.v1.AuthService service. Multiple
+// service clients may share a single connect.Client.
+func NewAuthServiceClient(client *connect.Client) AuthServiceClient {
+	return &authServiceClient{client: client}
 }
 
 // AuthServiceHandler is an implementation of the autovolume.v1.AuthService service.
 type AuthServiceHandler interface {
 	// The frontend opens auth_url in a popup and closes it itself, so auth_url needs no forwardUrl.
-	StartLogin(context.Context, *connect.Request[v1.StartLoginRequest]) (*connect.Response[v1.StartLoginResponse], error)
+	StartLogin(context.Context, *v1.StartLoginRequest) (*v1.StartLoginResponse, error)
 	// Polled until complete. CodeNotFound for an unknown, used or expired login_id.
 	// CodePermissionDenied if a server is selected and this account can't access it;
 	// before a server is selected, any account may sign in.
-	CompleteLogin(context.Context, *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error)
-	GetSession(context.Context, *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error)
-	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
+	CompleteLogin(context.Context, *v1.CompleteLoginRequest) (*v1.CompleteLoginResponse, error)
+	GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error)
+	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
 }
 
-// NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	authServiceMethods := v1.File_autovolume_v1_auth_proto.Services().ByName("AuthService").Methods()
-	authServiceStartLoginHandler := connect.NewUnaryHandler(
-		AuthServiceStartLoginProcedure,
-		svc.StartLogin,
-		connect.WithSchema(authServiceMethods.ByName("StartLogin")),
-		connect.WithHandlerOptions(opts...),
+// RegisterAuthServiceHandler registers svc as the autovolume.v1.AuthService implementation on
+// server.
+func RegisterAuthServiceHandler(server *connect.Server, svc AuthServiceHandler) {
+	adapter := authServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: authServiceStartLoginSpec(), Handler: adapter.startLogin},
+		connect.Method{Spec: authServiceCompleteLoginSpec(), Handler: adapter.completeLogin},
+		connect.Method{Spec: authServiceGetSessionSpec(), Handler: adapter.getSession},
+		connect.Method{Spec: authServiceLogoutSpec(), Handler: adapter.logout},
 	)
-	authServiceCompleteLoginHandler := connect.NewUnaryHandler(
-		AuthServiceCompleteLoginProcedure,
-		svc.CompleteLogin,
-		connect.WithSchema(authServiceMethods.ByName("CompleteLogin")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceGetSessionHandler := connect.NewUnaryHandler(
-		AuthServiceGetSessionProcedure,
-		svc.GetSession,
-		connect.WithSchema(authServiceMethods.ByName("GetSession")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceLogoutHandler := connect.NewUnaryHandler(
-		AuthServiceLogoutProcedure,
-		svc.Logout,
-		connect.WithSchema(authServiceMethods.ByName("Logout")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/autovolume.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case AuthServiceStartLoginProcedure:
-			authServiceStartLoginHandler.ServeHTTP(w, r)
-		case AuthServiceCompleteLoginProcedure:
-			authServiceCompleteLoginHandler.ServeHTTP(w, r)
-		case AuthServiceGetSessionProcedure:
-			authServiceGetSessionHandler.ServeHTTP(w, r)
-		case AuthServiceLogoutProcedure:
-			authServiceLogoutHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedAuthServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAuthServiceHandler struct{}
 
-func (UnimplementedAuthServiceHandler) StartLogin(context.Context, *connect.Request[v1.StartLoginRequest]) (*connect.Response[v1.StartLoginResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.AuthService.StartLogin is not implemented"))
+func (UnimplementedAuthServiceHandler) StartLogin(context.Context, *v1.StartLoginRequest) (*v1.StartLoginResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.AuthService.StartLogin is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) CompleteLogin(context.Context, *connect.Request[v1.CompleteLoginRequest]) (*connect.Response[v1.CompleteLoginResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.AuthService.CompleteLogin is not implemented"))
+func (UnimplementedAuthServiceHandler) CompleteLogin(context.Context, *v1.CompleteLoginRequest) (*v1.CompleteLoginResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.AuthService.CompleteLogin is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) GetSession(context.Context, *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.AuthService.GetSession is not implemented"))
+func (UnimplementedAuthServiceHandler) GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.AuthService.GetSession is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("autovolume.v1.AuthService.Logout is not implemented"))
+func (UnimplementedAuthServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.AuthService.Logout is not implemented")
+}
+
+type authServiceClient struct {
+	client *connect.Client
+}
+
+func (c *authServiceClient) StartLogin(ctx context.Context, req *v1.StartLoginRequest) (*v1.StartLoginResponse, error) {
+	var res v1.StartLoginResponse
+	if err := c.client.CallUnary(ctx, authServiceStartLoginSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) CompleteLogin(ctx context.Context, req *v1.CompleteLoginRequest) (*v1.CompleteLoginResponse, error) {
+	var res v1.CompleteLoginResponse
+	if err := c.client.CallUnary(ctx, authServiceCompleteLoginSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) GetSession(ctx context.Context, req *v1.GetSessionRequest) (*v1.GetSessionResponse, error) {
+	var res v1.GetSessionResponse
+	if err := c.client.CallUnary(ctx, authServiceGetSessionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) Logout(ctx context.Context, req *v1.LogoutRequest) (*v1.LogoutResponse, error) {
+	var res v1.LogoutResponse
+	if err := c.client.CallUnary(ctx, authServiceLogoutSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type authServiceHandler struct{ svc AuthServiceHandler }
+
+func (h authServiceHandler) startLogin(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StartLoginRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StartLogin(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) completeLogin(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CompleteLoginRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CompleteLogin(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) getSession(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSessionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSession(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) logout(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.LogoutRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Logout(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

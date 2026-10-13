@@ -3,12 +3,12 @@ module github.com/k-boyle/autovolume
 go 1.27
 
 tool (
-	connectrpc.com/connect/cmd/protoc-gen-connect-go
+	connectrpc.com/connect/v2/cmd/protoc-gen-connect-go
 	google.golang.org/protobuf/cmd/protoc-gen-go
 )
 
 require (
-	connectrpc.com/connect v1.21.0
+	connectrpc.com/connect/v2 v2.0.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/spf13/viper v1.21.0
 	github.com/uptrace/bun v1.3.0

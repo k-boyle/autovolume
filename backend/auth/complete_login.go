@@ -7,66 +7,64 @@ import (
 	"net/http"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/k-boyle/autovolume/database"
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
 )
 
-func (a authServiceHandler) CompleteLogin(ctx context.Context, req *connect.Request[CompleteLoginRequest]) (*connect.Response[CompleteLoginResponse], error) {
-	login, err := a.db.GetPendingLogin(ctx, req.Msg.LoginId)
+func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLoginRequest) (*CompleteLoginResponse, error) {
+	login, err := a.db.GetPendingLogin(ctx, req.LoginId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnknown, err)
+		return nil, connect.NewError(connect.CodeUnknown, "failed to get pending login").WithCause(err)
 	}
 	if login == nil {
-		return nil, connect.NewError(connect.CodeNotFound, nil)
+		return nil, connect.NewError(connect.CodeNotFound, "pending login not found")
 	}
 	if login.ExpiresAt.Before(time.Now()) {
 		go func() {
-			if err := a.db.DeletePendingLogin(ctx, req.Msg.LoginId); err != nil {
+			if err := a.db.DeletePendingLogin(ctx, req.LoginId); err != nil {
 				log.Println("failed to delete pending login - ", err)
 			}
 		}()
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeUnauthenticated, "pending login has expired")
 	}
 
 	pin, err := a.plex.ExchangePin(ctx, login.PinId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, "failed to exchange auth pin").WithCause(err)
 	}
 	if pin.AuthToken == nil {
-		return &connect.Response[CompleteLoginResponse]{
-			Msg: &CompleteLoginResponse{},
-		}, nil
+		return &CompleteLoginResponse{}, nil
 	}
 
 	go func() {
-		if err := a.db.DeletePendingLogin(ctx, req.Msg.LoginId); err != nil {
+		if err := a.db.DeletePendingLogin(ctx, req.LoginId); err != nil {
 			log.Println("failed to delete pending login - ", err)
 		}
 	}()
 
 	settings, err := a.db.ReadSettings(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, "failed to read settings").WithCause(err)
 	}
 	if settings == nil {
-		return nil, connect.NewError(connect.CodeInternal, nil)
+		return nil, connect.NewError(connect.CodeNotFound, "settings not found")
 	}
 
 	settings.PlexToken = *pin.AuthToken
 	settings.PlexTokenExpiresAt = pin.ExpiresAt
 
 	if err := a.db.UpdatePlexAuth(ctx, settings); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, "failed to update plex auth").WithCause(err)
 	}
 
 	users, err := a.plex.GetUsers(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, "failed to get plex users").WithCause(err)
 	}
 
 	if len(users.Users) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, nil)
+		return nil, connect.NewError(connect.CodeNotFound, "no plex users found")
 	}
 
 	user := users.Users[0]
@@ -80,16 +78,14 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *connect.Requ
 	}
 
 	if err := a.db.InsertSession(ctx, session); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, "failed to insert new session").WithCause(err)
 	}
 
-	rsp := &connect.Response[CompleteLoginResponse]{
-		Msg: &CompleteLoginResponse{
-			Complete: true,
-			User: &User{
-				Username:  user.Username,
-				AvatarUrl: user.AvatarUrl,
-			},
+	rsp := &CompleteLoginResponse{
+		Complete: true,
+		User: &User{
+			Username:  user.Username,
+			AvatarUrl: user.AvatarUrl,
 		},
 	}
 	cookie := &http.Cookie{
@@ -100,6 +96,7 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *connect.Requ
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(30 * 24 * time.Hour),
 	}
-	rsp.Header().Add("Set-Cookie", cookie.String())
+	info, _ := connect.CallInfoForServerContext(ctx)
+	info.ResponseHeader().Set("Set-Cookie", cookie.String())
 	return rsp, nil
 }
