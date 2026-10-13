@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/uptrace/bun"
 )
@@ -11,17 +12,19 @@ import (
 type Settings struct {
 	bun.BaseModel `bun:"table:settings"`
 
-	Id            bool   `bun:"id,pk"`
-	PlexClientId  string `bun:"plex_client_id,nullzero"`
-	ServerId      string `bun:"server_id,nullzero"`
-	ServerName    string `bun:"server_name,nullzero"`
-	ServerUrl     string `bun:"server_url,nullzero"`
-	ServerToken   string `bun:"server_token,nullzero"`
-	PlayerId      string `bun:"player_id,nullzero"`
-	TvAddress     string `bun:"tv_address,nullzero"`
-	TvPsk         string `bun:"tv_psk,nullzero"`
-	DefaultVolume int    `bun:"default_volume"`
-	PlexKeySeed   []byte `bun:"plex_key_seed"`
+	Id                 bool      `bun:"id,pk"`
+	PlexClientId       string    `bun:"plex_client_id,nullzero"`
+	ServerId           string    `bun:"server_id,nullzero"`
+	ServerName         string    `bun:"server_name,nullzero"`
+	ServerUrl          string    `bun:"server_url,nullzero"`
+	ServerToken        string    `bun:"server_token,nullzero"`
+	PlayerId           string    `bun:"player_id,nullzero"`
+	TvAddress          string    `bun:"tv_address,nullzero"`
+	TvPsk              string    `bun:"tv_psk,nullzero"`
+	DefaultVolume      int       `bun:"default_volume"`
+	PlexKeySeed        []byte    `bun:"plex_key_seed"`
+	PlexToken          string    `bun:"plex_token"`
+	PlexTokenExpiresAt time.Time `bun:"plex_token_expires_at"`
 }
 
 func (db *Database) ReadSettings(ctx context.Context) (*Settings, error) {
@@ -51,5 +54,10 @@ func (db *Database) CreateSettings(ctx context.Context) (*Settings, error) {
 
 func (db *Database) UpdatePlexKeySeed(ctx context.Context, settings *Settings) error {
 	_, err := db.db.NewUpdate().Model(settings).Column("plex_key_seed").Where("id = ?", settings.Id).Exec(ctx)
+	return err
+}
+
+func (db *Database) UpdatePlexAuth(ctx context.Context, settings *Settings) error {
+	_, err := db.db.NewUpdate().Model(settings).Column("plex_token").Column("plex_token_expires_at").Where("id = ?", settings.Id).Exec(ctx)
 	return err
 }

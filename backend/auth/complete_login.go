@@ -42,6 +42,21 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *connect.Requ
 		}
 	}()
 
+	settings, err := a.db.ReadSettings(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnknown, err)
+	}
+	if settings == nil {
+		return nil, connect.NewError(connect.CodeInternal, nil)
+	}
+
+	settings.PlexToken = *pin.AuthToken
+	settings.PlexTokenExpiresAt = pin.ExpiresAt
+
+	if err := a.db.UpdatePlexAuth(ctx, settings); err != nil {
+		return nil, connect.NewError(connect.CodeUnknown, err)
+	}
+
 	users, err := a.plex.GetUsers(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

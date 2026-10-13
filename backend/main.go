@@ -62,10 +62,20 @@ func main() {
 	}
 	pub, prv := getKeys(settings)
 
-	client, err := plex.New(http.DefaultClient, settings.PlexClientId, pub, prv)
+	client, err := plex.New(http.DefaultClient, settings.PlexClientId, pub, prv, func(ctx context.Context) (string, error) {
+		settings, err := db.ReadSettings(ctx)
+		if err != nil {
+			return "", err
+		}
+
+		return settings.PlexToken, nil
+	})
 	if err != nil {
 		log.Fatal("failed to create plex client - ", err)
 	}
+
+	rotator := plex.NewRotator(client, db)
+	go rotator.Start(ctx)
 
 	mux := http.NewServeMux()
 

@@ -23,6 +23,10 @@ type User struct {
 	AvatarUrl string `json:"thumb"`
 }
 
+type Nonce struct {
+	Value string `json:"nonce"`
+}
+
 type jwk struct {
 	Kty string `json:"kty"`
 	Crv string `json:"crv"`
@@ -34,4 +38,8 @@ type jwk struct {
 type createPinBody struct {
 	Jwk    jwk  `json:"jwk"`
 	Strong bool `json:"strong"`
+}
+
+type exchangeAuthBody struct {
+	Jwt string `json:"jwt"`
 }
