@@ -24,17 +24,6 @@ func NewHandler(db *database.Database, plex *plex.Client) service.AuthServiceHan
 	}
 }
 
-/*
-todo:
-* store session on complete login - return session id cookie
-* store plex token and expires in settings
-* on boot read in the settings and pre-populate fields
-* rotate tokens in background
-*/
-func (a authServiceHandler) GetSession(ctx context.Context, req *connect.Request[GetSessionRequest]) (*connect.Response[GetSessionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnauthenticated, nil)
-}
-
 func (a authServiceHandler) Logout(ctx context.Context, req *connect.Request[LogoutRequest]) (*connect.Response[LogoutResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, nil)
 }

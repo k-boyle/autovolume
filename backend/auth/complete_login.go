@@ -2,10 +2,13 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"log"
+	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/k-boyle/autovolume/database"
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
 )
 
@@ -44,7 +47,7 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *connect.Requ
 
 	settings, err := a.db.ReadSettings(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnknown, err)
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	if settings == nil {
 		return nil, connect.NewError(connect.CodeInternal, nil)
@@ -54,7 +57,7 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *connect.Requ
 	settings.PlexTokenExpiresAt = pin.ExpiresAt
 
 	if err := a.db.UpdatePlexAuth(ctx, settings); err != nil {
-		return nil, connect.NewError(connect.CodeUnknown, err)
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	users, err := a.plex.GetUsers(ctx)
@@ -68,7 +71,19 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *connect.Requ
 
 	user := users.Users[0]
 
-	return &connect.Response[CompleteLoginResponse]{
+	session := &database.Session{
+		Id:        rand.Text(),
+		Username:  user.Username,
+		AvatarUrl: user.AvatarUrl,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().AddDate(0, 0, 30),
+	}
+
+	if err := a.db.InsertSession(ctx, session); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	rsp := &connect.Response[CompleteLoginResponse]{
 		Msg: &CompleteLoginResponse{
 			Complete: true,
 			User: &User{
@@ -76,5 +91,15 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *connect.Requ
 				AvatarUrl: user.AvatarUrl,
 			},
 		},
-	}, nil
+	}
+	cookie := &http.Cookie{
+		Name:     "av_session",
+		Value:    session.Id,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(30 * 24 * time.Hour),
+	}
+	rsp.Header().Add("Set-Cookie", cookie.String())
+	return rsp, nil
 }
