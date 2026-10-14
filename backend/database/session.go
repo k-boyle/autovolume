@@ -29,3 +29,8 @@ func (db *Database) ReadSession(ctx context.Context, id string) (*Session, error
 	}
 	return session, nil
 }
+
+func (db *Database) DeleteSession(ctx context.Context, id string) error {
+	_, err := db.db.NewDelete().Model(&Session{}).Where("id = ?", id).Exec(ctx)
+	return err
+}

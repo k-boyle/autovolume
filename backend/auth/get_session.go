@@ -15,6 +15,9 @@ func (a authServiceHandler) GetSession(ctx context.Context, _ *GetSessionRequest
 	info, _ := connect.CallInfoForServerContext(ctx)
 	c := info.RequestHeader().Get("Cookie")
 	cookies, err := http.ParseCookie(c)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "failed to parse cookies").WithCause(err)
+	}
 	var sessionId string
 	for _, cookie := range cookies {
 		if cookie.Name == "av_session" {

@@ -102,7 +102,7 @@ func main() {
 
 func backend(db *database.Database, plex *plex.Client) http.Handler {
 	api := http.NewServeMux()
-	server := connect.NewServer()
+	server := connect.NewServer(auth.NewValidateSession(db))
 	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, plex))
 	autovolumev1connect.RegisterLibraryServiceHandler(server, library.NewHandler())
 	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler())
