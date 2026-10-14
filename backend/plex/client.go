@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -171,7 +171,7 @@ func (c *Client) executeRequest[T any](req *http.Request) (*T, error) {
 	defer func(body io.ReadCloser) {
 		err := body.Close()
 		if err != nil {
-			log.Printf("failed to close response body: %v", err)
+			slog.Error("failed to close response body", slog.Any("error", err))
 		}
 	}(rsp.Body)
 

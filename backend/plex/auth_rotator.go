@@ -3,7 +3,7 @@ package plex
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/k-boyle/autovolume/database"
@@ -29,7 +29,7 @@ func (r *Rotator) Start(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			if err := r.rotate(ctx); err != nil {
-				log.Printf("failed to rotate: %v", err)
+				slog.Error("failed to rotate", slog.Any("error", err))
 			}
 		case <-ctx.Done():
 			ticker.Stop()
@@ -39,7 +39,7 @@ func (r *Rotator) Start(ctx context.Context) {
 }
 
 func (r *Rotator) rotate(ctx context.Context) error {
-	log.Println("starting rotate")
+	slog.Info("starting rotate")
 
 	settings, err := r.db.ReadSettings(ctx)
 	if err != nil {
@@ -75,6 +75,6 @@ func (r *Rotator) rotate(ctx context.Context) error {
 		return err
 	}
 
-	log.Println("rotated auth token")
+	slog.Info("rotated auth token")
 	return nil
 }

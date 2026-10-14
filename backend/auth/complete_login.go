@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -23,7 +23,7 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 	if login.ExpiresAt.Before(time.Now()) {
 		go func() {
 			if err := a.db.DeletePendingLogin(ctx, req.LoginId); err != nil {
-				log.Println("failed to delete pending login - ", err)
+				slog.Error("failed to delete pending login", slog.Any("error", err))
 			}
 		}()
 		return nil, connect.NewError(connect.CodeUnauthenticated, "pending login has expired")
@@ -39,7 +39,7 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 
 	go func() {
 		if err := a.db.DeletePendingLogin(ctx, req.LoginId); err != nil {
-			log.Println("failed to delete pending login - ", err)
+			slog.Error("failed to delete pending login", slog.Any("error", err))
 		}
 	}()
 

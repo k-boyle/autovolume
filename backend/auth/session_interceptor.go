@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -54,7 +54,7 @@ func NewValidateSession(db *database.Database) connect.ServerInterceptor {
 				go func() {
 					err := db.DeleteSession(context.Background(), sessionId)
 					if err != nil {
-						log.Printf("failed to delete session: %v", err)
+						slog.Error("failed to delete session", slog.Any("error", err))
 					}
 				}()
 				return connect.NewError(connect.CodeUnauthenticated, "session is expired")

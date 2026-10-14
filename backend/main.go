@@ -5,9 +5,11 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,32 +37,49 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
+	textHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Value.Kind() == slog.KindAny {
+				if err, ok := a.Value.Any().(error); ok {
+					a.Value = fmtErr(err)
+				}
+			}
+
+			return a
+		},
+	})
+	slog.SetDefault(slog.New(textHandler))
+
 	v := viper.New()
 	config, err := LoadConfig(v)
 	if err != nil {
-		log.Fatal("failed to read config - ", err)
+		slog.Error("failed to read config", slog.Any("error", err))
+		return
 	}
-	log.Println("Config loaded")
+	slog.Info("Config loaded")
 
 	db, err := database.New(config.DatabaseConnection)
 	if err != nil {
-		log.Fatal("failed to connect to database - ", err)
+		slog.Error("failed to connect to database", slog.Any("error", err))
+		return
 	}
 	defer func(db *database.Database) {
 		err := db.Close()
 		if err != nil {
-			log.Fatal("failed to close database connection - ", err)
+			slog.Error("failed to close database connection", slog.Any("error", err))
 		}
 	}(db)
 
 	if err := db.Migrate(); err != nil {
-		log.Fatal("failed to run migrations", err)
+		slog.Error("failed to run migrations", slog.Any("error", err))
+		return
 	}
-	log.Println("Migrations run")
+	slog.Info("Migrations run")
 
 	settings, err := getSettings(ctx, db)
 	if err != nil {
-		log.Fatal("failed to get settings - ", err)
+		slog.Error("failed to get settings", slog.Any("error", err))
+		return
 	}
 	pub, prv := getKeys(settings)
 
@@ -73,7 +92,8 @@ func main() {
 		return settings.PlexToken, nil
 	})
 	if err != nil {
-		log.Fatal("failed to create plex client - ", err)
+		slog.Error("failed to create plex client", slog.Any("error", err))
+		return
 	}
 
 	rotator := plex.NewRotator(client, db)
@@ -94,19 +114,19 @@ func main() {
 		Protocols: p,
 	}
 
-	log.Println("Listening on " + srv.Addr)
+	slog.Info(fmt.Sprintf("Listening on %s", srv.Addr))
 	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal("failed to start server - ", err)
+		slog.Error("failed to start server", slog.Any("error", err))
 	}
 }
 
 func backend(db *database.Database, plex *plex.Client) http.Handler {
 	api := http.NewServeMux()
-	server := connect.NewServer(auth.NewValidateSession(db))
+	server := connect.NewServer(NewErrorLogger(), auth.NewValidateSession(db))
 	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, plex))
 	autovolumev1connect.RegisterLibraryServiceHandler(server, library.NewHandler())
 	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler())
-	autovolumev1connect.RegisterSetupServiceHandler(server, setup.NewHandler())
+	autovolumev1connect.RegisterSetupServiceHandler(server, setup.NewHandler(db, plex))
 	autovolumev1connect.RegisterTvServiceHandler(server, tv.NewHandler())
 	autovolumev1connect.RegisterVolumeServiceHandler(server, volume.NewHandler())
 	connecthttp.Mount(api, server)
@@ -116,7 +136,9 @@ func backend(db *database.Database, plex *plex.Client) http.Handler {
 func frontend() http.Handler {
 	dist, err := fs.Sub(web, "web/dist")
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("failed to open embedded web directory", slog.Any("error", err))
+		// :^)
+		log.Fatal()
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
@@ -176,4 +198,28 @@ func getSettings(ctx context.Context, db *database.Database) (*database.Settings
 func getKeys(settings *database.Settings) (ed25519.PublicKey, ed25519.PrivateKey) {
 	prv := ed25519.NewKeyFromSeed(settings.PlexKeySeed)
 	return prv.Public().(ed25519.PublicKey), prv
+}
+
+func NewErrorLogger() connect.ServerInterceptor {
+	return func(next connect.ServerFunc) connect.ServerFunc {
+		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
+			if err := next(ctx, spec, stream); err != nil {
+				slog.Error("failed to handle request", slog.Any("error", err))
+				return err
+			}
+
+			return nil
+		}
+	}
+}
+
+func fmtErr(err error) slog.Value {
+	msg := []string{err.Error()}
+	if cErr, ok := errors.AsType[*connect.Error](err); ok {
+		if cErr.Unwrap() != nil {
+			msg = append(msg, cErr.Unwrap().Error())
+		}
+	}
+
+	return slog.StringValue(strings.Join(msg, ": "))
 }
