@@ -58,6 +58,11 @@ func (db *Database) UpdatePlexKeySeed(ctx context.Context, settings *Settings) e
 }
 
 func (db *Database) UpdatePlexAuth(ctx context.Context, settings *Settings) error {
-	_, err := db.db.NewUpdate().Model(settings).Column("plex_token").Column("plex_token_expires_at").Where("id = ?", settings.Id).Exec(ctx)
+	_, err := db.db.NewUpdate().Model(settings).Column("plex_token", "plex_token_expires_at").Where("id = ?", settings.Id).Exec(ctx)
+	return err
+}
+
+func (db *Database) UpdateServer(ctx context.Context, settings *Settings) error {
+	_, err := db.db.NewUpdate().Model(settings).Column("server_id", "server_url", "server_token", "server_name").Where("id = ?", settings.Id).Exec(ctx)
 	return err
 }

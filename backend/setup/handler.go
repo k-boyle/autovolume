@@ -24,14 +24,6 @@ func NewHandler(db *database.Database, plex *plex.Client) service.SetupServiceHa
 	}
 }
 
-func (s setupServiceHandler) SelectServer(ctx context.Context, request *SelectServerRequest) (*SelectServerResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
-}
-
-func (s setupServiceHandler) ListPlayers(ctx context.Context, request *ListPlayersRequest) (*ListPlayersResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
-}
-
 func (s setupServiceHandler) SelectPlayer(ctx context.Context, request *SelectPlayerRequest) (*SelectPlayerResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }

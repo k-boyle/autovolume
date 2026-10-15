@@ -160,6 +160,23 @@ func (c *Client) ListDevices(ctx context.Context) ([]*Device, error) {
 	return *rsp, err
 }
 
+func (c *Client) GetIdentity(ctx context.Context, uri string) (*Identity, error) {
+	uri = uri + "/identity"
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", uri, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp, err := c.executeAuthenticatedRequest[mediaContainer[*Identity]](req)
+	if err != nil {
+		return nil, err
+	}
+	return rsp.Value, nil
+}
+
 func (c *Client) executeAuthenticatedRequest[T any](req *http.Request) (*T, error) {
 	token, err := c.tokenAccessor(req.Context())
 	if err != nil {

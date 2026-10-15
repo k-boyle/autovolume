@@ -61,3 +61,7 @@ type createPinBody struct {
 type exchangeAuthBody struct {
 	Jwt string `json:"jwt"`
 }
+
+type mediaContainer[T any] struct {
+	Value T `json:"mediaContainer"`
+}
