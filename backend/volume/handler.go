@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect/v2"
+	"github.com/k-boyle/autovolume/database"
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
 	service "github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
 )
@@ -11,10 +12,13 @@ import (
 var _ service.VolumeServiceHandler = volumeServiceHandler{}
 
 type volumeServiceHandler struct {
+	db *database.Database
 }
 
-func NewHandler() service.VolumeServiceHandler {
-	return volumeServiceHandler{}
+func NewHandler(db *database.Database) service.VolumeServiceHandler {
+	return volumeServiceHandler{
+		db: db,
+	}
 }
 
 func (v volumeServiceHandler) SetVolumeRule(ctx context.Context, request *SetVolumeRuleRequest) (*SetVolumeRuleResponse, error) {
@@ -26,10 +30,6 @@ func (v volumeServiceHandler) ClearVolumeRule(ctx context.Context, request *Clea
 }
 
 func (v volumeServiceHandler) ListVolumeRules(ctx context.Context, request *ListVolumeRulesRequest) (*ListVolumeRulesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
-}
-
-func (v volumeServiceHandler) GetDefaultVolume(ctx context.Context, request *GetDefaultVolumeRequest) (*GetDefaultVolumeResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }
 
