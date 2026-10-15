@@ -27,6 +27,24 @@ type Nonce struct {
 	Value string `json:"nonce"`
 }
 
+type Device struct {
+	Id          string        `json:"clientIdentifier"`
+	Name        string        `json:"name"`
+	Provides    string        `json:"provides"`
+	Connections []*Connection `json:"connections"`
+	AccessToken string        `json:"token"`
+	LastSeenAt  time.Time     `json:"lastSeenAt"`
+	Product     string        `json:"product"`
+	Presence    bool          `json:"presence"`
+}
+
+type Connection struct {
+	Uri string `json:"uri"`
+}
+
+type Identity struct {
+}
+
 type jwk struct {
 	Kty string `json:"kty"`
 	Crv string `json:"crv"`

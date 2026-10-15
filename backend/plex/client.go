@@ -146,6 +146,20 @@ func (c *Client) GetUsers(ctx context.Context) (*Users, error) {
 	return c.executeAuthenticatedRequest[Users](req)
 }
 
+func (c *Client) ListDevices(ctx context.Context) ([]*Device, error) {
+	uri := clientsUrl.JoinPath("api", "v2", "devices")
+	req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp, err := c.executeAuthenticatedRequest[[]*Device](req)
+	if err != nil {
+		return nil, err
+	}
+	return *rsp, err
+}
+
 func (c *Client) executeAuthenticatedRequest[T any](req *http.Request) (*T, error) {
 	token, err := c.tokenAccessor(req.Context())
 	if err != nil {
