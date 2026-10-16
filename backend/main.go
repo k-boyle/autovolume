@@ -38,6 +38,7 @@ func main() {
 	defer stop()
 
 	textHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		AddSource: true,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 			if a.Value.Kind() == slog.KindAny {
 				if err, ok := a.Value.Any().(error); ok {

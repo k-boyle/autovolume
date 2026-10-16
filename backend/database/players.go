@@ -29,3 +29,8 @@ func (db *Database) ReadPlayer(ctx context.Context, id string) (*Player, error) 
 	}
 	return player, nil
 }
+
+func (db *Database) InsertPlayer(ctx context.Context, player *Player) error {
+	_, err := db.db.NewInsert().Model(player).On("CONFLICT (id) DO UPDATE").Exec(ctx)
+	return err
+}

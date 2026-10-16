@@ -66,3 +66,8 @@ func (db *Database) UpdateServer(ctx context.Context, settings *Settings) error 
 	_, err := db.db.NewUpdate().Model(settings).Column("server_id", "server_url", "server_token", "server_name").Where("id = ?", settings.Id).Exec(ctx)
 	return err
 }
+
+func (db *Database) UpdatePlayer(ctx context.Context, settings *Settings) error {
+	_, err := db.db.NewUpdate().Model(settings).Column("player_id").Where("id = ?", settings.Id).Exec(ctx)
+	return err
+}
