@@ -30,7 +30,7 @@ func (a authServiceHandler) StartLogin(ctx context.Context, _ *StartLoginRequest
 
 	authUrl := fmt.Sprintf(
 		"%s/auth#?clientID=%s&code=%s&context%%5Bdevice%%5D%%5Bproduct%%5D=AutoVolume",
-		plex.Url,
+		plex.AppUrl,
 		pin.ClientIdentifier,
 		pin.Code,
 	)

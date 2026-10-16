@@ -18,11 +18,14 @@ import (
 )
 
 var clientsUrl *url.URL
-var Url *url.URL
+var baseUrl *url.URL
+var AppUrl *url.URL
 
 func init() {
 	clientsUrl, _ = url.Parse("https://clients.plex.tv")
-	Url, _ = url.Parse("https://plex.tv")
+	baseUrl, _ = url.Parse("https://plex.tv")
+	// plex broke some shit
+	AppUrl, _ = url.Parse("https://app.plex.tv")
 }
 
 type Client struct {
@@ -137,7 +140,7 @@ func (c *Client) ExchangePlexToken(ctx context.Context, nonce *Nonce) (*Pin, err
 }
 
 func (c *Client) GetUsers(ctx context.Context) (*Users, error) {
-	uri := Url.JoinPath("api", "v2", "home", "users")
+	uri := baseUrl.JoinPath("api", "v2", "home", "users")
 	req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 	if err != nil {
 		return nil, err
