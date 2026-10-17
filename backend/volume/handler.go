@@ -32,7 +32,3 @@ func (v volumeServiceHandler) ClearVolumeRule(ctx context.Context, request *Clea
 func (v volumeServiceHandler) ListVolumeRules(ctx context.Context, request *ListVolumeRulesRequest) (*ListVolumeRulesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }
-
-func (v volumeServiceHandler) SetDefaultVolume(ctx context.Context, request *SetDefaultVolumeRequest) (*SetDefaultVolumeResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
-}
