@@ -43,6 +43,8 @@ func main() {
 			if a.Value.Kind() == slog.KindAny {
 				if err, ok := a.Value.Any().(error); ok {
 					a.Value = fmtErr(err)
+				} else if a.Key == "source" {
+					return logSource(a.Value.Any().(*slog.Source))
 				}
 			}
 
@@ -223,4 +225,12 @@ func fmtErr(err error) slog.Value {
 	}
 
 	return slog.StringValue(strings.Join(msg, ": "))
+}
+
+func logSource(source *slog.Source) slog.Attr {
+	_, after, _ := strings.Cut(source.File, "backend")
+	file := slog.String("file", after)
+	method := slog.String("method", source.Function)
+	line := slog.Int("line", source.Line)
+	return slog.GroupAttrs("source", file, method, line)
 }
