@@ -248,6 +248,9 @@ export const TvPowerSchema: GenEnum<TvPower> = /*@__PURE__*/
   enumDesc(file_autovolume_v1_tv, 0);
 
 /**
+ * The device whose volume you hear: a Bravia TV, which needs a PSK, or a Sony soundbar on the
+ * Audio Control API (port 10000), which has none. The backend tells them apart by productCategory.
+ *
  * @generated from service autovolume.v1.TvService
  */
 export const TvService: GenService<{

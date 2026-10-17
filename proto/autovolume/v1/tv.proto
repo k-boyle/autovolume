@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package autovolume.v1;
 
+// The device whose volume you hear: a Bravia TV, which needs a PSK, or a Sony soundbar on the
+// Audio Control API (port 10000), which has none. The backend tells them apart by productCategory.
 service TvService {
   rpc GetTvConfig(GetTvConfigRequest) returns (GetTvConfigResponse);
   rpc UpdateTvConfig(UpdateTvConfigRequest) returns (UpdateTvConfigResponse);

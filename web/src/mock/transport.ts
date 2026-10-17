@@ -262,21 +262,19 @@ export function createMockTransport(): Transport {
         await delay()
         requireSession()
         if (!address) throw new ConnectError('Enter the TV’s IP address.', Code.InvalidArgument)
-        if (!psk && !state.tvPsk) throw new ConnectError('Enter the pre-shared key.', Code.InvalidArgument)
         state.tvAddress = address
         if (psk) state.tvPsk = psk
         commit()
-        return { config: { address, pskSet: true } }
+        return { config: { address, pskSet: !!state.tvPsk } }
       },
       async testTvConnection({ address, psk }) {
         await delay(800)
         requireSession()
         if (!address) throw new ConnectError('Enter the TV’s IP address.', Code.InvalidArgument)
         const key = psk ?? state.tvPsk
-        if (!key) throw new ConnectError('Enter the pre-shared key.', Code.InvalidArgument)
         if (address === unreachableTvAddress) throw new ConnectError(`No response from ${address}.`, Code.Unavailable)
         if (key === pskTheTvRejects) throw new ConnectError('The TV rejected the pre-shared key.', Code.PermissionDenied)
-        return { model: 'KD-55X90J', state: { power: TvPower.ACTIVE, volume: state.tvVolume, muted: false } }
+        return { model: key ? 'KD-55X90J' : 'HT-A9', state: { power: TvPower.ACTIVE, volume: state.tvVolume, muted: false } }
       },
       async setTvVolume({ volume }) {
         await delay()

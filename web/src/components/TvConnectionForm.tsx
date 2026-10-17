@@ -41,7 +41,7 @@ export function TvConnectionForm({ onSaved, submitLabel = 'Test and save' }: { o
   return (
     <form onSubmit={submit} className="space-y-4">
       <label className="block text-sm font-medium">
-        TV IP address
+        TV or soundbar IP address
         <input
           className={inputClass}
           value={addressValue}
@@ -53,15 +53,14 @@ export function TvConnectionForm({ onSaved, submitLabel = 'Test and save' }: { o
         />
       </label>
       <label className="block text-sm font-medium">
-        Pre-shared key
+        Pre-shared key <span className="font-normal text-muted">(Bravia TVs only)</span>
         <input
           className={inputClass}
           type="password"
           value={psk}
           onChange={(e) => setPsk(e.target.value)}
-          placeholder={saved?.pskSet ? 'Saved. Leave blank to keep it.' : ''}
+          placeholder={saved?.pskSet ? 'Saved. Leave blank to keep it.' : 'Leave blank for a soundbar'}
           autoComplete="off"
-          required={!saved?.pskSet}
         />
       </label>
 
@@ -77,6 +76,10 @@ export function TvConnectionForm({ onSaved, submitLabel = 'Test and save' }: { o
           <li>The IP address is on the TV's network status screen, or in your router's device list.</li>
         </ol>
         <p className="mt-2">Menu names vary a little between Bravia models.</p>
+        <p className="mt-2">
+          If your sound goes through a Sony soundbar, enter the soundbar's IP address instead and leave the key blank.
+          While the soundbar is playing, the TV's own volume does nothing.
+        </p>
       </details>
 
       {test.isSuccess && test.data.state && (
