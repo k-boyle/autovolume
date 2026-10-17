@@ -101,7 +101,12 @@ func main() {
 	}
 
 	rotator := plex.NewRotator(plexClient, db)
-	go rotator.Start(ctx)
+	go func() {
+		err := rotator.Start(ctx)
+		if err != nil {
+			slog.Error("failed to start rotator", slog.Any("error", err))
+		}
+	}()
 
 	sonyClient := sony.NewClient(http.DefaultClient, func(ctx context.Context) (string, string, error) {
 		settings, err := db.ReadSettings(ctx)

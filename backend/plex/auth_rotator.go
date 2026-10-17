@@ -22,8 +22,12 @@ func NewRotator(plex *Client, db *database.Database) *Rotator {
 	}
 }
 
-func (r *Rotator) Start(ctx context.Context) {
+func (r *Rotator) Start(ctx context.Context) error {
 	ticker := time.NewTicker(time.Hour)
+
+	if err := r.rotate(ctx); err != nil {
+		return err
+	}
 
 	for {
 		select {
@@ -33,7 +37,7 @@ func (r *Rotator) Start(ctx context.Context) {
 			}
 		case <-ctx.Done():
 			ticker.Stop()
-			return
+			return ctx.Err()
 		}
 	}
 }
@@ -48,10 +52,10 @@ func (r *Rotator) rotate(ctx context.Context) error {
 	if settings == nil {
 		return fmt.Errorf("no settings found")
 	}
-	if settings.PlexToken != "" {
+	if settings.PlexToken == "" {
 		return nil
 	}
-	if settings.PlexTokenExpiresAt.Before(time.Now().AddDate(0, 0, -1)) {
+	if time.Until(settings.PlexTokenExpiresAt) > 24*time.Hour {
 		return nil
 	}
 
