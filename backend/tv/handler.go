@@ -7,22 +7,21 @@ import (
 	"github.com/k-boyle/autovolume/database"
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
 	service "github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
+	"github.com/k-boyle/autovolume/sony"
 )
 
 var _ service.TvServiceHandler = tvServiceHandler{}
 
 type tvServiceHandler struct {
-	db *database.Database
+	db   *database.Database
+	sony *sony.Client
 }
 
-func NewHandler(db *database.Database) service.TvServiceHandler {
+func NewHandler(db *database.Database, sony *sony.Client) service.TvServiceHandler {
 	return tvServiceHandler{
-		db: db,
+		db:   db,
+		sony: sony,
 	}
-}
-
-func (t tvServiceHandler) TestTvConnection(ctx context.Context, request *TestTvConnectionRequest) (*TestTvConnectionResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }
 
 func (t tvServiceHandler) SetTvVolume(ctx context.Context, request *SetTvVolumeRequest) (*SetTvVolumeResponse, error) {
