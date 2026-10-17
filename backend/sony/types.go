@@ -22,14 +22,8 @@ type GetVolumeInformationResponse struct {
 	Mute      MuteStatus `json:"mute"`
 }
 
-type GetInterfaceInformationParams struct {
-}
-
 type GetInterfaceInformationResponse struct {
 	ModelName string `json:"modelName"`
-}
-
-type GetPowerStatusParams struct {
 }
 
 type GetPowerStatusResponse struct {

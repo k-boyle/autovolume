@@ -9,7 +9,7 @@ import (
 )
 
 func (t tvServiceHandler) TestTvConnection(ctx context.Context, request *TestTvConnectionRequest) (*TestTvConnectionResponse, error) {
-	info, err := t.sony.GetInterfaceInformation.Execute(ctx, &sony.GetInterfaceInformationParams{}, sony.Override{
+	info, err := t.sony.GetInterfaceInformation.Execute(ctx, nil, sony.Override{
 		Url: request.Address,
 		Psk: request.Psk,
 	})
@@ -17,15 +17,16 @@ func (t tvServiceHandler) TestTvConnection(ctx context.Context, request *TestTvC
 		return nil, connect.NewError(connect.CodeInternal, "failed to get tv information").WithCause(err)
 	}
 
-	volume, err := t.sony.GetVolumeInformation.Execute(ctx, &sony.GetVolumeInformationParams{}, sony.Override{
+	volumes, err := t.sony.GetVolumeInformation.Execute(ctx, &sony.GetVolumeInformationParams{}, sony.Override{
 		Url: request.Address,
 		Psk: request.Psk,
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to get tv volume").WithCause(err)
 	}
+	volume := (*volumes)[0]
 
-	power, err := t.sony.GetPowerStatus.Execute(ctx, &sony.GetPowerStatusParams{}, sony.Override{
+	power, err := t.sony.GetPowerStatus.Execute(ctx, nil, sony.Override{
 		Url: request.Address,
 		Psk: request.Psk,
 	})

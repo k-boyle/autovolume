@@ -14,9 +14,9 @@ type Client struct {
 	http        *http.Client
 	urlAccessor func(ctx context.Context) (string, string, error)
 
-	GetVolumeInformation    Endpoint[GetVolumeInformationParams, GetVolumeInformationResponse]
-	GetInterfaceInformation Endpoint[GetInterfaceInformationParams, GetInterfaceInformationResponse]
-	GetPowerStatus          Endpoint[GetPowerStatusParams, GetPowerStatusResponse]
+	GetVolumeInformation    Endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]
+	GetInterfaceInformation Endpoint[any, GetInterfaceInformationResponse]
+	GetPowerStatus          Endpoint[any, GetPowerStatusResponse]
 }
 
 func NewClient(http *http.Client, urlAccessor func(ctx context.Context) (string, string, error)) *Client {
@@ -24,21 +24,21 @@ func NewClient(http *http.Client, urlAccessor func(ctx context.Context) (string,
 		http:        http,
 		urlAccessor: urlAccessor,
 	}
-	c.GetVolumeInformation = Endpoint[GetVolumeInformationParams, GetVolumeInformationResponse]{
+	c.GetVolumeInformation = Endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]{
 		c:       c,
 		path:    "/sony/audio",
 		method:  "getVolumeInformation",
 		id:      33,
 		version: "1.1",
 	}
-	c.GetInterfaceInformation = Endpoint[GetInterfaceInformationParams, GetInterfaceInformationResponse]{
+	c.GetInterfaceInformation = Endpoint[any, GetInterfaceInformationResponse]{
 		c:       c,
 		path:    "/sony/system",
 		method:  "getInterfaceInformation",
 		id:      33,
 		version: "1.0",
 	}
-	c.GetPowerStatus = Endpoint[GetPowerStatusParams, GetPowerStatusResponse]{
+	c.GetPowerStatus = Endpoint[any, GetPowerStatusResponse]{
 		c:       c,
 		path:    "/sony/system",
 		method:  "getPowerStatus",
@@ -62,12 +62,16 @@ type Override struct {
 }
 
 func (e Endpoint[R1, R2]) Execute(ctx context.Context, params *R1, overrides ...Override) (*R2, error) {
-	reqBody, err := json.Marshal(requestBody[R1]{
+	body := requestBody[R1]{
 		Method:  e.method,
 		Id:      e.id,
 		Version: e.version,
-		Params:  []*R1{params},
-	})
+		Params:  []*R1{},
+	}
+	if params != nil {
+		body.Params = append(body.Params, params)
+	}
+	reqBody, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +93,7 @@ func (e Endpoint[R1, R2]) Execute(ctx context.Context, params *R1, overrides ...
 	}
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
 	if len(psk) > 0 {
-		req.Header.Add("PSK", psk)
+		req.Header.Add("X-Auth-PSK", psk)
 	}
 
 	rsp, err := e.c.http.Do(req)
@@ -110,6 +114,13 @@ func (e Endpoint[R1, R2]) Execute(ctx context.Context, params *R1, overrides ...
 	if err := json.NewDecoder(rsp.Body).Decode(rspBody); err != nil {
 		return nil, err
 	}
+	if len(rspBody.Error) > 0 {
+		return nil, fmt.Errorf("failed to execute request: %s", rspBody.Error)
+	}
+
+	if len(rspBody.Result) == 0 {
+		return nil, fmt.Errorf("not results found")
+	}
 
 	return rspBody.Result[0], nil
 }
@@ -122,6 +133,7 @@ type requestBody[P any] struct {
 }
 
 type responseBody[P any] struct {
-	Result []*P `json:"result"`
-	Id     int  `json:"id"`
+	Result []*P  `json:"result"`
+	Id     int   `json:"id"`
+	Error  []any `json:"error"`
 }

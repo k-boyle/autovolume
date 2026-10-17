@@ -48,7 +48,7 @@ func (s setupServiceHandler) GetSetupStatus(ctx context.Context, _ *GetSetupStat
 			Server:        server,
 			Player:        player,
 			PlexConnected: settings.ServerUrl != "" && settings.PlexTokenExpiresAt.After(time.Now()),
-			TvConfigured:  settings.TvAddress != "" && settings.TvPsk != "",
+			TvConfigured:  settings.TvAddress != "",
 		},
 	}, nil
 }
