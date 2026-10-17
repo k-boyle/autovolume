@@ -71,3 +71,8 @@ func (db *Database) UpdatePlayer(ctx context.Context, settings *Settings) error 
 	_, err := db.db.NewUpdate().Model(settings).Column("player_id").Where("id = ?", settings.Id).Exec(ctx)
 	return err
 }
+
+func (db *Database) UpdateTV(ctx context.Context, settings *Settings) error {
+	_, err := db.db.NewUpdate().Model(settings).Column("tv_address", "tv_psk").Where("id = ?", settings.Id).Exec(ctx)
+	return err
+}

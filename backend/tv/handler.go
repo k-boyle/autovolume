@@ -21,10 +21,6 @@ func NewHandler(db *database.Database) service.TvServiceHandler {
 	}
 }
 
-func (t tvServiceHandler) UpdateTvConfig(ctx context.Context, request *UpdateTvConfigRequest) (*UpdateTvConfigResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
-}
-
 func (t tvServiceHandler) TestTvConnection(ctx context.Context, request *TestTvConnectionRequest) (*TestTvConnectionResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }
