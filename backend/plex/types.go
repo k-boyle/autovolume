@@ -65,3 +65,7 @@ type exchangeAuthBody struct {
 type mediaContainer[T any] struct {
 	Value T `json:"mediaContainer"`
 }
+
+type ExchangedAuthToken struct {
+	AuthToken string `json:"auth_token"`
+}

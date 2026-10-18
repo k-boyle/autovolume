@@ -86,8 +86,9 @@ func main() {
 		return
 	}
 	pub, prv := getKeys(settings)
+	plexAuthClient := plex.NewAuthClient(http.DefaultClient, settings.PlexClientId, pub, prv)
 
-	plexClient, err := plex.New(http.DefaultClient, settings.PlexClientId, pub, prv, func(ctx context.Context) (string, error) {
+	plexApiClient := plex.NewApiClient(http.DefaultClient, settings.PlexClientId, func(ctx context.Context) (string, error) {
 		settings, err := db.ReadSettings(ctx)
 		if err != nil {
 			return "", err
@@ -100,11 +101,11 @@ func main() {
 		return
 	}
 
-	rotator := plex.NewRotator(plexClient, db)
+	rotator := plex.NewRotator(plexAuthClient, db)
 	go func() {
 		err := rotator.Start(ctx)
 		if err != nil {
-			slog.Error("failed to start rotator", slog.Any("error", err))
+			panic(err)
 		}
 	}()
 
@@ -119,7 +120,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/api/", http.StripPrefix("/api", backend(db, plexClient, sonyClient)))
+	mux.Handle("/api/", http.StripPrefix("/api", backend(db, plexAuthClient, plexApiClient, sonyClient)))
 	mux.Handle("/", frontend())
 
 	p := new(http.Protocols)
@@ -138,13 +139,13 @@ func main() {
 	}
 }
 
-func backend(db *database.Database, plex *plex.Client, sony *sony.Client) http.Handler {
+func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex.ApiClient, sony *sony.Client) http.Handler {
 	api := http.NewServeMux()
 	server := connect.NewServer(NewErrorLogger(), auth.NewValidateSession(db))
-	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, plex))
+	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, authClient, apiClient))
 	autovolumev1connect.RegisterLibraryServiceHandler(server, library.NewHandler())
 	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler())
-	autovolumev1connect.RegisterSetupServiceHandler(server, setup.NewHandler(db, plex))
+	autovolumev1connect.RegisterSetupServiceHandler(server, setup.NewHandler(db, apiClient))
 	autovolumev1connect.RegisterTvServiceHandler(server, tv.NewHandler(db, sony))
 	autovolumev1connect.RegisterVolumeServiceHandler(server, volume.NewHandler(db))
 	connecthttp.Mount(api, server)

@@ -12,7 +12,7 @@ import (
 )
 
 func (a authServiceHandler) StartLogin(ctx context.Context, _ *StartLoginRequest) (*StartLoginResponse, error) {
-	pin, err := a.plex.CreatePin(ctx)
+	pin, err := a.plexAuth.CreatePin(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnknown, "failed to create pin").WithCause(err)
 	}

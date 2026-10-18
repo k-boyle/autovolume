@@ -10,10 +10,10 @@ var _ service.SetupServiceHandler = setupServiceHandler{}
 
 type setupServiceHandler struct {
 	db   *database.Database
-	plex *plex.Client
+	plex *plex.ApiClient
 }
 
-func NewHandler(db *database.Database, plex *plex.Client) service.SetupServiceHandler {
+func NewHandler(db *database.Database, plex *plex.ApiClient) service.SetupServiceHandler {
 	return setupServiceHandler{
 		db:   db,
 		plex: plex,

@@ -10,7 +10,7 @@ import (
 )
 
 func (s setupServiceHandler) ListServers(ctx context.Context, _ *ListServersRequest) (*ListServersResponse, error) {
-	devices, err := s.plex.ListDevices(ctx)
+	devices, err := s.plex.ListDevices.Execute(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to list plex devices").WithCause(err)
 	}

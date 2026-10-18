@@ -29,7 +29,7 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 		return nil, connect.NewError(connect.CodeUnauthenticated, "pending login has expired")
 	}
 
-	pin, err := a.plex.ExchangePin(ctx, login.PinId)
+	pin, err := a.plexAuth.ExchangePin(ctx, login.PinId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to exchange auth pin").WithCause(err)
 	}
@@ -58,7 +58,7 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 		return nil, connect.NewError(connect.CodeInternal, "failed to update plex auth").WithCause(err)
 	}
 
-	users, err := a.plex.GetUsers(ctx)
+	users, err := a.plexApi.GetUsers.Execute(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to get plex users").WithCause(err)
 	}

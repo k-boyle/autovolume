@@ -12,7 +12,7 @@ import (
 )
 
 func (s setupServiceHandler) ListPlayers(ctx context.Context, _ *ListPlayersRequest) (*ListPlayersResponse, error) {
-	devices, err := s.plex.ListDevices(ctx)
+	devices, err := s.plex.ListDevices.Execute(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to list devices")
 	}
@@ -22,7 +22,7 @@ func (s setupServiceHandler) ListPlayers(ctx context.Context, _ *ListPlayersRequ
 			continue
 		}
 
-		plexPlayers = append(plexPlayers, device)
+		plexPlayers = append(plexPlayers, &device)
 	}
 
 	var players []*Player

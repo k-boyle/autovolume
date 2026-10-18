@@ -17,37 +17,25 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var clientsUrl *url.URL
-var baseUrl *url.URL
-var AppUrl *url.URL
+var clientsUrl = mustParse("https://clients.plex.tv")
 
-func init() {
-	clientsUrl, _ = url.Parse("https://clients.plex.tv")
-	baseUrl, _ = url.Parse("https://plex.tv")
-	// plex broke some shit
-	AppUrl, _ = url.Parse("https://app.plex.tv")
-}
-
-type Client struct {
+type AuthClient struct {
 	client   *http.Client
+	clientId string
 	pub      ed25519.PublicKey
 	prv      ed25519.PrivateKey
-	clientId string
-
-	tokenAccessor func(context.Context) (string, error)
 }
 
-func New(client *http.Client, clientId string, pub ed25519.PublicKey, prv ed25519.PrivateKey, tokenAccessor func(context.Context) (string, error)) (*Client, error) {
-	return &Client{
-		client:        client,
-		pub:           pub,
-		prv:           prv,
-		clientId:      clientId,
-		tokenAccessor: tokenAccessor,
-	}, nil
+func NewAuthClient(client *http.Client, clientId string, pub ed25519.PublicKey, prv ed25519.PrivateKey) *AuthClient {
+	return &AuthClient{
+		client:   client,
+		clientId: clientId,
+		pub:      pub,
+		prv:      prv,
+	}
 }
 
-func (c *Client) CreatePin(ctx context.Context) (*Pin, error) {
+func (c *AuthClient) CreatePin(ctx context.Context) (*Pin, error) {
 	b, err := json.Marshal(createPinBody{
 		Jwk: jwk{
 			Kty: "OKP",
@@ -70,7 +58,7 @@ func (c *Client) CreatePin(ctx context.Context) (*Pin, error) {
 	return c.executeRequest[Pin](req)
 }
 
-func (c *Client) ExchangePin(ctx context.Context, pinId int) (*Pin, error) {
+func (c *AuthClient) ExchangePin(ctx context.Context, pinId int) (*Pin, error) {
 	now := time.Now()
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, jwt.MapClaims{
 		"aud": "plex.tv",
@@ -96,7 +84,7 @@ func (c *Client) ExchangePin(ctx context.Context, pinId int) (*Pin, error) {
 	return c.executeRequest[Pin](req)
 }
 
-func (c *Client) GetNonce(ctx context.Context) (*Nonce, error) {
+func (c *AuthClient) GetNonce(ctx context.Context) (*Nonce, error) {
 	uri := clientsUrl.JoinPath("api", "v2", "auth", "nonce")
 	req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 	if err != nil {
@@ -106,7 +94,7 @@ func (c *Client) GetNonce(ctx context.Context) (*Nonce, error) {
 	return c.executeRequest[Nonce](req)
 }
 
-func (c *Client) ExchangePlexToken(ctx context.Context, nonce *Nonce) (*Pin, error) {
+func (c *AuthClient) ExchangePlexToken(ctx context.Context, nonce *Nonce) (*ExchangedAuthToken, error) {
 	uri := clientsUrl.JoinPath("api", "v2", "auth", "token")
 	now := time.Now()
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, jwt.MapClaims{
@@ -136,63 +124,10 @@ func (c *Client) ExchangePlexToken(ctx context.Context, nonce *Nonce) (*Pin, err
 		return nil, err
 	}
 
-	return c.executeRequest[Pin](req)
+	return c.executeRequest[ExchangedAuthToken](req)
 }
 
-func (c *Client) GetUsers(ctx context.Context) (*Users, error) {
-	uri := baseUrl.JoinPath("api", "v2", "home", "users")
-	req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.executeAuthenticatedRequest[Users](req)
-}
-
-func (c *Client) ListDevices(ctx context.Context) ([]*Device, error) {
-	uri := clientsUrl.JoinPath("api", "v2", "devices")
-	req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	rsp, err := c.executeAuthenticatedRequest[[]*Device](req)
-	if err != nil {
-		return nil, err
-	}
-	return *rsp, err
-}
-
-func (c *Client) GetIdentity(ctx context.Context, uri string) (*Identity, error) {
-	uri = uri + "/identity"
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "GET", uri, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	rsp, err := c.executeAuthenticatedRequest[mediaContainer[*Identity]](req)
-	if err != nil {
-		return nil, err
-	}
-	return rsp.Value, nil
-}
-
-func (c *Client) executeAuthenticatedRequest[T any](req *http.Request) (*T, error) {
-	token, err := c.tokenAccessor(req.Context())
-	if err != nil {
-		return nil, err
-	}
-	if len(token) == 0 {
-		return nil, fmt.Errorf("no token found")
-	}
-	req.Header.Set("X-Plex-Token", token)
-	return c.executeRequest[T](req)
-}
-
-func (c *Client) executeRequest[T any](req *http.Request) (*T, error) {
+func (c *AuthClient) executeRequest[T any](req *http.Request) (*T, error) {
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("X-Plex-Client-Identifier", c.clientId)
@@ -224,4 +159,13 @@ func (c *Client) executeRequest[T any](req *http.Request) (*T, error) {
 	}
 
 	return t, nil
+}
+
+func mustParse(u string) *url.URL {
+	parsed, err := url.Parse(u)
+	if err != nil {
+		panic(err)
+	}
+
+	return parsed
 }

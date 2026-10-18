@@ -2,20 +2,22 @@ package plex
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/k-boyle/autovolume/database"
 )
 
 type Rotator struct {
-	plex   *Client
+	plex   *AuthClient
 	db     *database.Database
 	ticker *time.Ticker
 }
 
-func NewRotator(plex *Client, db *database.Database) *Rotator {
+func NewRotator(plex *AuthClient, db *database.Database) *Rotator {
 	return &Rotator{
 		plex: plex,
 		db:   db,
@@ -64,21 +66,39 @@ func (r *Rotator) rotate(ctx context.Context) error {
 		return err
 	}
 
-	pin, err := r.plex.ExchangePlexToken(ctx, nonce)
+	exchangedToken, err := r.plex.ExchangePlexToken(ctx, nonce)
 	if err != nil {
 		return err
 	}
 
-	if pin.AuthToken == nil {
-		return fmt.Errorf("no auth token found")
+	expiresAt, err := tokenExpiry(exchangedToken.AuthToken)
+	if err != nil {
+		return err
 	}
 
-	settings.PlexToken = *pin.AuthToken
-	settings.PlexTokenExpiresAt = pin.ExpiresAt
+	settings.PlexToken = exchangedToken.AuthToken
+	settings.PlexTokenExpiresAt = expiresAt
 	if err := r.db.UpdatePlexAuth(ctx, settings); err != nil {
 		return err
 	}
 
 	slog.Info("rotated auth token")
 	return nil
+}
+
+func tokenExpiry(token string) (time.Time, error) {
+	claims := jwt.MapClaims{}
+	if _, _, err := new(jwt.Parser).ParseUnverified(token, claims); err != nil {
+		return time.Time{}, err
+	}
+
+	exp, err := claims.GetExpirationTime()
+	if err != nil {
+		return time.Time{}, err
+	}
+	if exp == nil {
+		return time.Time{}, errors.New("token has no expiration time")
+	}
+
+	return exp.Time, nil
 }

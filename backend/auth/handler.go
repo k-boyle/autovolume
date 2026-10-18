@@ -9,13 +9,15 @@ import (
 var _ service.AuthServiceHandler = authServiceHandler{}
 
 type authServiceHandler struct {
-	db   *database.Database
-	plex *plex.Client
+	db       *database.Database
+	plexAuth *plex.AuthClient
+	plexApi  *plex.ApiClient
 }
 
-func NewHandler(db *database.Database, plex *plex.Client) service.AuthServiceHandler {
+func NewHandler(db *database.Database, authClient *plex.AuthClient, apiClient *plex.ApiClient) service.AuthServiceHandler {
 	return authServiceHandler{
-		db:   db,
-		plex: plex,
+		db:       db,
+		plexAuth: authClient,
+		plexApi:  apiClient,
 	}
 }
