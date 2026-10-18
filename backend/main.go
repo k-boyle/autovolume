@@ -18,16 +18,16 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
-	"github.com/k-boyle/autovolume/auth"
 	"github.com/k-boyle/autovolume/database"
 	"github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
-	"github.com/k-boyle/autovolume/library"
-	"github.com/k-boyle/autovolume/playing"
+	"github.com/k-boyle/autovolume/handler/auth"
+	"github.com/k-boyle/autovolume/handler/library"
+	"github.com/k-boyle/autovolume/handler/playing"
+	"github.com/k-boyle/autovolume/handler/setup"
+	"github.com/k-boyle/autovolume/handler/tv"
+	"github.com/k-boyle/autovolume/handler/volume"
 	"github.com/k-boyle/autovolume/plex"
-	"github.com/k-boyle/autovolume/setup"
 	"github.com/k-boyle/autovolume/sony"
-	"github.com/k-boyle/autovolume/tv"
-	"github.com/k-boyle/autovolume/volume"
 	"github.com/spf13/viper"
 )
 
