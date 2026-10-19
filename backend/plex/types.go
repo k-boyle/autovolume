@@ -45,6 +45,16 @@ type Connection struct {
 type Identity struct {
 }
 
+type LibrarySections struct {
+	Directory []LibraryDirectory `json:"Directory"`
+}
+
+type LibraryDirectory struct {
+	Key   string `json:"key"`
+	Title string `json:"title"`
+	Type  string `json:"type"`
+}
+
 type jwk struct {
 	Kty string `json:"kty"`
 	Crv string `json:"crv"`

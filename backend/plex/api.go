@@ -18,9 +18,10 @@ type ApiClient struct {
 	plexAccessor Accessor
 	pmsAccessor  Accessor
 
-	GetUsers    Endpoint[Users]
-	ListDevices Endpoint[[]Device]
-	GetIdentity Endpoint[Identity]
+	GetUsers              Endpoint[Users]
+	ListDevices           Endpoint[[]Device]
+	GetIdentity           Endpoint[Identity]
+	GetAllLibrarySections Endpoint[LibrarySections]
 }
 
 type Accessor func(context.Context) (*url.URL, string, error)
@@ -45,6 +46,11 @@ func NewApiClient(client *http.Client, clientId string, plexAccessor Accessor, p
 	c.GetIdentity = &pmsEndpoint[Identity]{
 		c:      c,
 		path:   "/identity",
+		method: "GET",
+	}
+	c.GetAllLibrarySections = &pmsEndpoint[LibrarySections]{
+		c:      c,
+		path:   "/library/sections/all",
 		method: "GET",
 	}
 	return c
