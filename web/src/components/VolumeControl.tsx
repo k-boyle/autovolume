@@ -31,7 +31,7 @@ export function VolumeControl({ value, onChange, label, disabled }: Props) {
         onChange={(e) => onChange(Number(e.target.value))}
         disabled={disabled}
         aria-label={label}
-        className="h-2 min-w-0 flex-1 cursor-pointer disabled:cursor-not-allowed"
+        className="h-2 w-0 min-w-0 flex-1 cursor-pointer disabled:cursor-not-allowed"
       />
       <button
         type="button"

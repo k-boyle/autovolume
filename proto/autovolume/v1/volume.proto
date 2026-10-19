@@ -4,16 +4,18 @@ package autovolume.v1;
 
 import "autovolume/v1/media.proto";
 
-// Rules attach to movies and shows; episodes use their show's rule.
+// Rules attach to movies, shows and seasons. An episode uses its season's rule,
+// else its show's.
 // When playback on the selected player starts or resumes (buffering counts as
 // playing), the backend sets the TV to the rule, or the default without one.
 // On pause or stop it sets the default. Act only on state changes: Plex
 // re-sends "playing" every ~10s, and re-applying would override the TV remote.
 // None of these RPCs touch the TV; TvService.SetTvVolume is the "apply now" path.
 service VolumeService {
+  // CodeInvalidArgument for anything but a movie, show or season.
   rpc SetVolumeRule(SetVolumeRuleRequest) returns (SetVolumeRuleResponse);
   rpc ClearVolumeRule(ClearVolumeRuleRequest) returns (ClearVolumeRuleResponse);
-  // Sorted by title.
+  // Sorted by title. Seasons sort by their show's title, then season number.
   rpc ListVolumeRules(ListVolumeRulesRequest) returns (ListVolumeRulesResponse);
   rpc GetDefaultVolume(GetDefaultVolumeRequest) returns (GetDefaultVolumeResponse);
   rpc SetDefaultVolume(SetDefaultVolumeRequest) returns (SetDefaultVolumeResponse);

@@ -9,6 +9,8 @@ service LibraryService {
   rpc ListLibraries(ListLibrariesRequest) returns (ListLibrariesResponse);
   // Sorted by title.
   rpc ListItems(ListItemsRequest) returns (ListItemsResponse);
+  // In Plex's order, so Specials come first. CodeNotFound if show_rating_key isn't a show.
+  rpc ListSeasons(ListSeasonsRequest) returns (ListSeasonsResponse);
 }
 
 message Library {
@@ -34,4 +36,12 @@ message ListItemsRequest {
 message ListItemsResponse {
   repeated MediaItem items = 1;
   int32 total = 2;
+}
+
+message ListSeasonsRequest {
+  string show_rating_key = 1;
+}
+
+message ListSeasonsResponse {
+  repeated MediaItem seasons = 1;
 }

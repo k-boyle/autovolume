@@ -3,7 +3,7 @@ import { timestampFromDate } from '@bufbuild/protobuf/wkt'
 import { Code, ConnectError, createRouterTransport, type Transport } from '@connectrpc/connect'
 import { AuthService } from '../gen/autovolume/v1/auth_pb'
 import { LibraryService } from '../gen/autovolume/v1/library_pb'
-import type { MediaItemSchema } from '../gen/autovolume/v1/media_pb'
+import { MediaType, type MediaItemSchema } from '../gen/autovolume/v1/media_pb'
 import {
   NowPlayingService,
   PlaybackState,
@@ -12,7 +12,17 @@ import {
 import { SetupService, type SetupStatusSchema } from '../gen/autovolume/v1/setup_pb'
 import { TvPower, TvService, type TvStateSchema } from '../gen/autovolume/v1/tv_pb'
 import { VolumeService } from '../gen/autovolume/v1/volume_pb'
-import { catalog, findByTitle, initialRules, libraries, players, servers, type CatalogEntry } from './data'
+import {
+  catalog,
+  findByTitle,
+  findSeason,
+  initialRules,
+  libraries,
+  players,
+  seasons,
+  servers,
+  type CatalogEntry,
+} from './data'
 import { mockStorageKey } from './storageKey'
 
 const pskTheTvRejects = 'wrong'
@@ -92,13 +102,21 @@ function toItem(entry: CatalogEntry): MessageInitShape<typeof MediaItemSchema> {
     year: entry.year,
     thumbUrl: '',
     volume: state.rules[entry.ratingKey],
+    showRatingKey: entry.show?.ratingKey,
+    showTitle: entry.show?.title,
+    seasonNumber: entry.show?.seasonNumber,
   }
 }
 
 function findItem(ratingKey: string): CatalogEntry {
-  const entry = catalog.find((e) => e.ratingKey === ratingKey)
-  if (!entry) throw new ConnectError(`No movie or show with ratingKey ${ratingKey}.`, Code.NotFound)
+  const entry = catalog.find((e) => e.ratingKey === ratingKey) ?? seasons.find((e) => e.ratingKey === ratingKey)
+  if (!entry) throw new ConnectError(`No movie, show or season with ratingKey ${ratingKey}.`, Code.NotFound)
   return entry
+}
+
+function ruleOrder(a: CatalogEntry, b: CatalogEntry) {
+  const byTitle = (a.show?.title ?? a.title).localeCompare(b.show?.title ?? b.title)
+  return byTitle || (a.show?.seasonNumber ?? -1) - (b.show?.seasonNumber ?? -1)
 }
 
 function setupStatus(): MessageInitShape<typeof SetupStatusSchema> {
@@ -129,11 +147,14 @@ function tvState(): MessageInitShape<typeof TvStateSchema> {
 }
 
 const severance = findByTitle('Severance')
+const severanceS1 = { season: findSeason('Severance', 1), title: 'Good News About Hell', seasonNumber: 1, episodeNumber: 1 }
+const severanceS2 = { season: findSeason('Severance', 2), title: 'Hello, Ms. Cobel', seasonNumber: 2, episodeNumber: 1 }
 const scenes = [
-  { entry: severance, state: PlaybackState.PLAYING, seconds: 45 },
-  { entry: severance, state: PlaybackState.PAUSED, seconds: 15 },
-  { entry: findByTitle('Dune: Part Two'), state: PlaybackState.PLAYING, seconds: 45 },
-  { entry: undefined, state: PlaybackState.UNSPECIFIED, seconds: 20 },
+  { entry: severance, episode: severanceS1, state: PlaybackState.PLAYING, seconds: 30 },
+  { entry: severance, episode: severanceS2, state: PlaybackState.PLAYING, seconds: 30 },
+  { entry: severance, episode: severanceS2, state: PlaybackState.PAUSED, seconds: 15 },
+  { entry: findByTitle('Dune: Part Two'), episode: undefined, state: PlaybackState.PLAYING, seconds: 45 },
+  { entry: undefined, episode: undefined, state: PlaybackState.UNSPECIFIED, seconds: 20 },
 ]
 const cycleSeconds = scenes.reduce((n, s) => n + s.seconds, 0)
 
@@ -149,13 +170,15 @@ function currentScene() {
 let lastSceneKey = ''
 function applyVolumeOnPlaybackChange() {
   const scene = currentScene()
-  const key = `${scene.entry?.ratingKey}:${scene.state}`
+  const key = `${scene.episode?.season.ratingKey ?? scene.entry?.ratingKey}:${scene.state}`
   if (key === lastSceneKey) return
   lastSceneKey = key
   if (!state.tvAddress) return
   const target =
     scene.state === PlaybackState.PLAYING && scene.entry
-      ? (state.rules[scene.entry.ratingKey] ?? state.defaultVolume)
+      ? ((scene.episode && state.rules[scene.episode.season.ratingKey]) ??
+        state.rules[scene.entry.ratingKey] ??
+        state.defaultVolume)
       : state.defaultVolume
   if (target !== undefined && target !== state.tvVolume) {
     state.tvVolume = target
@@ -169,8 +192,12 @@ function snapshot(): MessageInitShape<typeof WatchNowPlayingResponseSchema> {
     playback: scene.entry && {
       state: scene.state,
       item: toItem(scene.entry),
-      episode:
-        scene.entry === severance ? { title: 'Good News About Hell', seasonNumber: 1, episodeNumber: 1 } : undefined,
+      episode: scene.episode && {
+        title: scene.episode.title,
+        seasonNumber: scene.episode.seasonNumber,
+        episodeNumber: scene.episode.episodeNumber,
+      },
+      season: scene.episode && toItem(scene.episode.season),
     },
     tv: tvState(),
     defaultVolume: state.defaultVolume,
@@ -303,6 +330,14 @@ export function createMockTransport(): Transport {
         const size = Math.min(limit || 50, 200)
         return { items: matches.slice(offset, offset + size).map(toItem), total: matches.length }
       },
+      async listSeasons({ showRatingKey }) {
+        await delay()
+        requireServer()
+        if (findItem(showRatingKey).type !== MediaType.SHOW) {
+          throw new ConnectError(`${showRatingKey} isn’t a show.`, Code.NotFound)
+        }
+        return { seasons: seasons.filter((e) => e.show?.ratingKey === showRatingKey).map(toItem) }
+      },
     })
 
     service(VolumeService, {
@@ -327,9 +362,9 @@ export function createMockTransport(): Transport {
       async listVolumeRules() {
         await delay()
         requireServer()
-        const items = catalog
+        const items = [...catalog, ...seasons]
           .filter((e) => state.rules[e.ratingKey] !== undefined)
-          .sort((a, b) => a.title.localeCompare(b.title))
+          .sort(ruleOrder)
           .map(toItem)
         return { items }
       },

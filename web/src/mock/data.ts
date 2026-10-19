@@ -6,6 +6,7 @@ export interface CatalogEntry {
   title: string
   year: number
   libraryId: string
+  show?: { ratingKey: string; title: string; seasonNumber: number }
 }
 
 const movies: [string, number][] = [
@@ -24,15 +25,17 @@ const movies: [string, number][] = [
   ['WALL·E', 2008], ['Whiplash', 2014], ['Zodiac', 2007],
 ]
 
-const shows: [string, number][] = [
-  ['Andor', 2022], ['Arcane', 2021], ['Atlanta', 2016], ['Barry', 2018], ['Better Call Saul', 2015],
-  ['Bluey', 2018], ['Breaking Bad', 2008], ['Chernobyl', 2019], ['Dark', 2017], ['Fleabag', 2016], ['Hacks', 2021],
-  ['Mad Men', 2007], ['Mr. Robot', 2015], ['Only Murders in the Building', 2021], ['Planet Earth II', 2016],
-  ['Severance', 2022], ['Shōgun', 2024], ['Slow Horses', 2022], ['Succession', 2018], ['Taskmaster', 2015],
-  ['Ted Lasso', 2020], ['The Bear', 2022], ['The Expanse', 2015], ['The Last of Us', 2023], ['The Leftovers', 2014],
-  ['The Office', 2005], ['The Wire', 2002], ['True Detective', 2014], ['Twin Peaks', 1990],
-  ['What We Do in the Shadows', 2019],
+const shows: [string, number, number][] = [
+  ['Andor', 2022, 2], ['Arcane', 2021, 2], ['Atlanta', 2016, 4], ['Barry', 2018, 4], ['Better Call Saul', 2015, 6],
+  ['Bluey', 2018, 3], ['Breaking Bad', 2008, 5], ['Chernobyl', 2019, 1], ['Dark', 2017, 3], ['Fleabag', 2016, 2],
+  ['Hacks', 2021, 4], ['Mad Men', 2007, 7], ['Mr. Robot', 2015, 4], ['Only Murders in the Building', 2021, 5],
+  ['Planet Earth II', 2016, 1], ['Severance', 2022, 2], ['Shōgun', 2024, 1], ['Slow Horses', 2022, 5],
+  ['Succession', 2018, 4], ['Taskmaster', 2015, 19], ['Ted Lasso', 2020, 3], ['The Bear', 2022, 4],
+  ['The Expanse', 2015, 6], ['The Last of Us', 2023, 2], ['The Leftovers', 2014, 3], ['The Office', 2005, 9],
+  ['The Wire', 2002, 5], ['True Detective', 2014, 4], ['Twin Peaks', 1990, 3], ['What We Do in the Shadows', 2019, 6],
 ]
+
+const showsWithSpecials = new Set(['Bluey', 'Taskmaster'])
 
 export const libraries = [
   { id: '1', title: 'Movies', type: MediaType.MOVIE },
@@ -44,9 +47,31 @@ export const catalog: CatalogEntry[] = [
   ...shows.map(([title, year], i) => ({ ratingKey: `s${i + 1}`, type: MediaType.SHOW, title, year, libraryId: '2' })),
 ]
 
+export const seasons: CatalogEntry[] = shows.flatMap(([title, , count], i) => {
+  const show = { ratingKey: `s${i + 1}`, title }
+  const first = showsWithSpecials.has(title) ? 0 : 1
+  return Array.from({ length: count + 1 - first }, (_, j) => {
+    const seasonNumber = first + j
+    return {
+      ratingKey: `${show.ratingKey}-${seasonNumber}`,
+      type: MediaType.SEASON,
+      title: seasonNumber === 0 ? 'Specials' : `Season ${seasonNumber}`,
+      year: 0,
+      libraryId: '2',
+      show: { ...show, seasonNumber },
+    }
+  })
+})
+
 export function findByTitle(title: string): CatalogEntry {
   const entry = catalog.find((e) => e.title === title)
   if (!entry) throw new Error(`mock catalog has no "${title}"`)
+  return entry
+}
+
+export function findSeason(showTitle: string, seasonNumber: number): CatalogEntry {
+  const entry = seasons.find((e) => e.show?.title === showTitle && e.show.seasonNumber === seasonNumber)
+  if (!entry) throw new Error(`mock catalog has no "${showTitle}" season ${seasonNumber}`)
   return entry
 }
 
@@ -62,6 +87,7 @@ export const players = [
 
 export const initialRules: Record<string, number> = {
   [findByTitle('Severance').ratingKey]: 18,
+  [findSeason('Severance', 2).ratingKey]: 24,
   [findByTitle('Bluey').ratingKey]: 12,
   [findByTitle('Dune: Part Two').ratingKey]: 30,
   [findByTitle('Planet Earth II').ratingKey]: 25,

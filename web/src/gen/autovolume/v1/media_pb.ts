@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file autovolume/v1/media.proto.
  */
 export const file_autovolume_v1_media: GenFile = /*@__PURE__*/
-  fileDesc("ChlhdXRvdm9sdW1lL3YxL21lZGlhLnByb3RvEg1hdXRvdm9sdW1lLnYxIpcBCglNZWRpYUl0ZW0SEgoKcmF0aW5nX2tleRgBIAEoCRImCgR0eXBlGAIgASgOMhguYXV0b3ZvbHVtZS52MS5NZWRpYVR5cGUSDQoFdGl0bGUYAyABKAkSDAoEeWVhchgEIAEoBRIRCgl0aHVtYl91cmwYBSABKAkSEwoGdm9sdW1lGAYgASgFSACIAQFCCQoHX3ZvbHVtZSpSCglNZWRpYVR5cGUSGgoWTUVESUFfVFlQRV9VTlNQRUNJRklFRBAAEhQKEE1FRElBX1RZUEVfTU9WSUUQARITCg9NRURJQV9UWVBFX1NIT1cQAkKyAQoRY29tLmF1dG92b2x1bWUudjFCCk1lZGlhUHJvdG9QAVo8Z2l0aHViLmNvbS9rLWJveWxlL2F1dG92b2x1bWUvZ2VuL2F1dG92b2x1bWUvdjE7YXV0b3ZvbHVtZXYxogIDQVhYqgINQXV0b3ZvbHVtZS5WMcoCDUF1dG92b2x1bWVcVjHiAhlBdXRvdm9sdW1lXFYxXEdQQk1ldGFkYXRh6gIOQXV0b3ZvbHVtZTo6VjFiBnByb3RvMw");
+  fileDesc("ChlhdXRvdm9sdW1lL3YxL21lZGlhLnByb3RvEg1hdXRvdm9sdW1lLnYxItsBCglNZWRpYUl0ZW0SEgoKcmF0aW5nX2tleRgBIAEoCRImCgR0eXBlGAIgASgOMhguYXV0b3ZvbHVtZS52MS5NZWRpYVR5cGUSDQoFdGl0bGUYAyABKAkSDAoEeWVhchgEIAEoBRIRCgl0aHVtYl91cmwYBSABKAkSEwoGdm9sdW1lGAYgASgFSACIAQESFwoPc2hvd19yYXRpbmdfa2V5GAcgASgJEhIKCnNob3dfdGl0bGUYCCABKAkSFQoNc2Vhc29uX251bWJlchgJIAEoBUIJCgdfdm9sdW1lKmkKCU1lZGlhVHlwZRIaChZNRURJQV9UWVBFX1VOU1BFQ0lGSUVEEAASFAoQTUVESUFfVFlQRV9NT1ZJRRABEhMKD01FRElBX1RZUEVfU0hPVxACEhUKEU1FRElBX1RZUEVfU0VBU09OEANCsgEKEWNvbS5hdXRvdm9sdW1lLnYxQgpNZWRpYVByb3RvUAFaPGdpdGh1Yi5jb20vay1ib3lsZS9hdXRvdm9sdW1lL2dlbi9hdXRvdm9sdW1lL3YxO2F1dG92b2x1bWV2MaICA0FYWKoCDUF1dG92b2x1bWUuVjHKAg1BdXRvdm9sdW1lXFYx4gIZQXV0b3ZvbHVtZVxWMVxHUEJNZXRhZGF0YeoCDkF1dG92b2x1bWU6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message autovolume.v1.MediaItem
@@ -27,6 +27,8 @@ export type MediaItem = Message<"autovolume.v1.MediaItem"> & {
   type: MediaType;
 
   /**
+   * For a season, Plex's name for it, e.g. "Season 2" or "Specials".
+   *
    * @generated from field: string title = 3;
    */
   title: string;
@@ -47,6 +49,25 @@ export type MediaItem = Message<"autovolume.v1.MediaItem"> & {
    * @generated from field: optional int32 volume = 6;
    */
   volume?: number | undefined;
+
+  /**
+   * Seasons only.
+   *
+   * @generated from field: string show_rating_key = 7;
+   */
+  showRatingKey: string;
+
+  /**
+   * @generated from field: string show_title = 8;
+   */
+  showTitle: string;
+
+  /**
+   * Plex's season index; 0 is Specials.
+   *
+   * @generated from field: int32 season_number = 9;
+   */
+  seasonNumber: number;
 };
 
 /**
@@ -74,6 +95,11 @@ export enum MediaType {
    * @generated from enum value: MEDIA_TYPE_SHOW = 2;
    */
   SHOW = 2,
+
+  /**
+   * @generated from enum value: MEDIA_TYPE_SEASON = 3;
+   */
+  SEASON = 3,
 }
 
 /**

@@ -27,6 +27,7 @@ const (
 	MediaType_MEDIA_TYPE_UNSPECIFIED MediaType = 0
 	MediaType_MEDIA_TYPE_MOVIE       MediaType = 1
 	MediaType_MEDIA_TYPE_SHOW        MediaType = 2
+	MediaType_MEDIA_TYPE_SEASON      MediaType = 3
 )
 
 // Enum value maps for MediaType.
@@ -35,11 +36,13 @@ var (
 		0: "MEDIA_TYPE_UNSPECIFIED",
 		1: "MEDIA_TYPE_MOVIE",
 		2: "MEDIA_TYPE_SHOW",
+		3: "MEDIA_TYPE_SEASON",
 	}
 	MediaType_value = map[string]int32{
 		"MEDIA_TYPE_UNSPECIFIED": 0,
 		"MEDIA_TYPE_MOVIE":       1,
 		"MEDIA_TYPE_SHOW":        2,
+		"MEDIA_TYPE_SEASON":      3,
 	}
 )
 
@@ -74,11 +77,17 @@ type MediaItem struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	RatingKey string                 `protobuf:"bytes,1,opt,name=rating_key,json=ratingKey,proto3" json:"rating_key,omitempty"`
 	Type      MediaType              `protobuf:"varint,2,opt,name=type,proto3,enum=autovolume.v1.MediaType" json:"type,omitempty"`
-	Title     string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Year      int32                  `protobuf:"varint,4,opt,name=year,proto3" json:"year,omitempty"`
+	// For a season, Plex's name for it, e.g. "Season 2" or "Specials".
+	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Year  int32  `protobuf:"varint,4,opt,name=year,proto3" json:"year,omitempty"`
 	// Backend path, e.g. "/api/img/12345". The frontend appends ?w=&h= to pick a size.
-	ThumbUrl      string `protobuf:"bytes,5,opt,name=thumb_url,json=thumbUrl,proto3" json:"thumb_url,omitempty"`
-	Volume        *int32 `protobuf:"varint,6,opt,name=volume,proto3,oneof" json:"volume,omitempty"`
+	ThumbUrl string `protobuf:"bytes,5,opt,name=thumb_url,json=thumbUrl,proto3" json:"thumb_url,omitempty"`
+	Volume   *int32 `protobuf:"varint,6,opt,name=volume,proto3,oneof" json:"volume,omitempty"`
+	// Seasons only.
+	ShowRatingKey string `protobuf:"bytes,7,opt,name=show_rating_key,json=showRatingKey,proto3" json:"show_rating_key,omitempty"`
+	ShowTitle     string `protobuf:"bytes,8,opt,name=show_title,json=showTitle,proto3" json:"show_title,omitempty"`
+	// Plex's season index; 0 is Specials.
+	SeasonNumber  int32 `protobuf:"varint,9,opt,name=season_number,json=seasonNumber,proto3" json:"season_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -155,11 +164,32 @@ func (x *MediaItem) GetVolume() int32 {
 	return 0
 }
 
+func (x *MediaItem) GetShowRatingKey() string {
+	if x != nil {
+		return x.ShowRatingKey
+	}
+	return ""
+}
+
+func (x *MediaItem) GetShowTitle() string {
+	if x != nil {
+		return x.ShowTitle
+	}
+	return ""
+}
+
+func (x *MediaItem) GetSeasonNumber() int32 {
+	if x != nil {
+		return x.SeasonNumber
+	}
+	return 0
+}
+
 var File_autovolume_v1_media_proto protoreflect.FileDescriptor
 
 const file_autovolume_v1_media_proto_rawDesc = "" +
 	"\n" +
-	"\x19autovolume/v1/media.proto\x12\rautovolume.v1\"\xc7\x01\n" +
+	"\x19autovolume/v1/media.proto\x12\rautovolume.v1\"\xb3\x02\n" +
 	"\tMediaItem\x12\x1d\n" +
 	"\n" +
 	"rating_key\x18\x01 \x01(\tR\tratingKey\x12,\n" +
@@ -167,12 +197,17 @@ const file_autovolume_v1_media_proto_rawDesc = "" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12\x12\n" +
 	"\x04year\x18\x04 \x01(\x05R\x04year\x12\x1b\n" +
 	"\tthumb_url\x18\x05 \x01(\tR\bthumbUrl\x12\x1b\n" +
-	"\x06volume\x18\x06 \x01(\x05H\x00R\x06volume\x88\x01\x01B\t\n" +
-	"\a_volume*R\n" +
+	"\x06volume\x18\x06 \x01(\x05H\x00R\x06volume\x88\x01\x01\x12&\n" +
+	"\x0fshow_rating_key\x18\a \x01(\tR\rshowRatingKey\x12\x1d\n" +
+	"\n" +
+	"show_title\x18\b \x01(\tR\tshowTitle\x12#\n" +
+	"\rseason_number\x18\t \x01(\x05R\fseasonNumberB\t\n" +
+	"\a_volume*i\n" +
 	"\tMediaType\x12\x1a\n" +
 	"\x16MEDIA_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10MEDIA_TYPE_MOVIE\x10\x01\x12\x13\n" +
-	"\x0fMEDIA_TYPE_SHOW\x10\x02B\xb2\x01\n" +
+	"\x0fMEDIA_TYPE_SHOW\x10\x02\x12\x15\n" +
+	"\x11MEDIA_TYPE_SEASON\x10\x03B\xb2\x01\n" +
 	"\x11com.autovolume.v1B\n" +
 	"MediaProtoP\x01Z<github.com/k-boyle/autovolume/gen/autovolume/v1;autovolumev1\xa2\x02\x03AXX\xaa\x02\rAutovolume.V1\xca\x02\rAutovolume\\V1\xe2\x02\x19Autovolume\\V1\\GPBMetadata\xea\x02\x0eAutovolume::V1b\x06proto3"
 

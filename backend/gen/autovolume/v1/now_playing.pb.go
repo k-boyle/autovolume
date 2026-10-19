@@ -135,7 +135,9 @@ type Playback struct {
 	State PlaybackState          `protobuf:"varint,1,opt,name=state,proto3,enum=autovolume.v1.PlaybackState" json:"state,omitempty"`
 	Item  *MediaItem             `protobuf:"bytes,2,opt,name=item,proto3" json:"item,omitempty"`
 	// Set when an episode is playing; `item` is then its show.
-	Episode       *Episode `protobuf:"bytes,3,opt,name=episode,proto3" json:"episode,omitempty"`
+	Episode *Episode `protobuf:"bytes,3,opt,name=episode,proto3" json:"episode,omitempty"`
+	// Set when an episode is playing. A volume here wins over `item`'s.
+	Season        *MediaItem `protobuf:"bytes,4,opt,name=season,proto3" json:"season,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -187,6 +189,13 @@ func (x *Playback) GetItem() *MediaItem {
 func (x *Playback) GetEpisode() *Episode {
 	if x != nil {
 		return x.Episode
+	}
+	return nil
+}
+
+func (x *Playback) GetSeason() *MediaItem {
+	if x != nil {
+		return x.Season
 	}
 	return nil
 }
@@ -295,11 +304,12 @@ const file_autovolume_v1_now_playing_proto_rawDesc = "" +
 	"\aEpisode\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12#\n" +
 	"\rseason_number\x18\x02 \x01(\x05R\fseasonNumber\x12%\n" +
-	"\x0eepisode_number\x18\x03 \x01(\x05R\repisodeNumber\"\x9e\x01\n" +
+	"\x0eepisode_number\x18\x03 \x01(\x05R\repisodeNumber\"\xd0\x01\n" +
 	"\bPlayback\x122\n" +
 	"\x05state\x18\x01 \x01(\x0e2\x1c.autovolume.v1.PlaybackStateR\x05state\x12,\n" +
 	"\x04item\x18\x02 \x01(\v2\x18.autovolume.v1.MediaItemR\x04item\x120\n" +
-	"\aepisode\x18\x03 \x01(\v2\x16.autovolume.v1.EpisodeR\aepisode\"\x18\n" +
+	"\aepisode\x18\x03 \x01(\v2\x16.autovolume.v1.EpisodeR\aepisode\x120\n" +
+	"\x06season\x18\x04 \x01(\v2\x18.autovolume.v1.MediaItemR\x06season\"\x18\n" +
 	"\x16WatchNowPlayingRequest\"\xb5\x01\n" +
 	"\x17WatchNowPlayingResponse\x123\n" +
 	"\bplayback\x18\x01 \x01(\v2\x17.autovolume.v1.PlaybackR\bplayback\x12&\n" +
@@ -341,15 +351,16 @@ var file_autovolume_v1_now_playing_proto_depIdxs = []int32{
 	0, // 0: autovolume.v1.Playback.state:type_name -> autovolume.v1.PlaybackState
 	5, // 1: autovolume.v1.Playback.item:type_name -> autovolume.v1.MediaItem
 	1, // 2: autovolume.v1.Playback.episode:type_name -> autovolume.v1.Episode
-	2, // 3: autovolume.v1.WatchNowPlayingResponse.playback:type_name -> autovolume.v1.Playback
-	6, // 4: autovolume.v1.WatchNowPlayingResponse.tv:type_name -> autovolume.v1.TvState
-	3, // 5: autovolume.v1.NowPlayingService.WatchNowPlaying:input_type -> autovolume.v1.WatchNowPlayingRequest
-	4, // 6: autovolume.v1.NowPlayingService.WatchNowPlaying:output_type -> autovolume.v1.WatchNowPlayingResponse
-	6, // [6:7] is the sub-list for method output_type
-	5, // [5:6] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5, // 3: autovolume.v1.Playback.season:type_name -> autovolume.v1.MediaItem
+	2, // 4: autovolume.v1.WatchNowPlayingResponse.playback:type_name -> autovolume.v1.Playback
+	6, // 5: autovolume.v1.WatchNowPlayingResponse.tv:type_name -> autovolume.v1.TvState
+	3, // 6: autovolume.v1.NowPlayingService.WatchNowPlaying:input_type -> autovolume.v1.WatchNowPlayingRequest
+	4, // 7: autovolume.v1.NowPlayingService.WatchNowPlaying:output_type -> autovolume.v1.WatchNowPlayingResponse
+	7, // [7:8] is the sub-list for method output_type
+	6, // [6:7] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_autovolume_v1_now_playing_proto_init() }

@@ -29,6 +29,8 @@ const (
 	LibraryServiceListLibrariesProcedure = "/autovolume.v1.LibraryService/ListLibraries"
 	// LibraryServiceListItemsProcedure is the procedure name of the LibraryService's ListItems RPC.
 	LibraryServiceListItemsProcedure = "/autovolume.v1.LibraryService/ListItems"
+	// LibraryServiceListSeasonsProcedure is the procedure name of the LibraryService's ListSeasons RPC.
+	LibraryServiceListSeasonsProcedure = "/autovolume.v1.LibraryService/ListSeasons"
 )
 
 var (
@@ -46,6 +48,13 @@ var (
 			Procedure:  LibraryServiceListItemsProcedure,
 		}
 	})
+	libraryServiceListSeasonsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_autovolume_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("ListSeasons"),
+			Procedure:  LibraryServiceListSeasonsProcedure,
+		}
+	})
 )
 
 // LibraryServiceClient is a client for the autovolume.v1.LibraryService service.
@@ -54,6 +63,8 @@ type LibraryServiceClient interface {
 	ListLibraries(context.Context, *v1.ListLibrariesRequest) (*v1.ListLibrariesResponse, error)
 	// Sorted by title.
 	ListItems(context.Context, *v1.ListItemsRequest) (*v1.ListItemsResponse, error)
+	// In Plex's order, so Specials come first. CodeNotFound if show_rating_key isn't a show.
+	ListSeasons(context.Context, *v1.ListSeasonsRequest) (*v1.ListSeasonsResponse, error)
 }
 
 // NewLibraryServiceClient constructs a client for the autovolume.v1.LibraryService service.
@@ -68,6 +79,8 @@ type LibraryServiceHandler interface {
 	ListLibraries(context.Context, *v1.ListLibrariesRequest) (*v1.ListLibrariesResponse, error)
 	// Sorted by title.
 	ListItems(context.Context, *v1.ListItemsRequest) (*v1.ListItemsResponse, error)
+	// In Plex's order, so Specials come first. CodeNotFound if show_rating_key isn't a show.
+	ListSeasons(context.Context, *v1.ListSeasonsRequest) (*v1.ListSeasonsResponse, error)
 }
 
 // RegisterLibraryServiceHandler registers svc as the autovolume.v1.LibraryService implementation on
@@ -77,6 +90,7 @@ func RegisterLibraryServiceHandler(server *connect.Server, svc LibraryServiceHan
 	server.Register(
 		connect.Method{Spec: libraryServiceListLibrariesSpec(), Handler: adapter.listLibraries},
 		connect.Method{Spec: libraryServiceListItemsSpec(), Handler: adapter.listItems},
+		connect.Method{Spec: libraryServiceListSeasonsSpec(), Handler: adapter.listSeasons},
 	)
 }
 
@@ -89,6 +103,10 @@ func (UnimplementedLibraryServiceHandler) ListLibraries(context.Context, *v1.Lis
 
 func (UnimplementedLibraryServiceHandler) ListItems(context.Context, *v1.ListItemsRequest) (*v1.ListItemsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.LibraryService.ListItems is not implemented")
+}
+
+func (UnimplementedLibraryServiceHandler) ListSeasons(context.Context, *v1.ListSeasonsRequest) (*v1.ListSeasonsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "autovolume.v1.LibraryService.ListSeasons is not implemented")
 }
 
 type libraryServiceClient struct {
@@ -106,6 +124,14 @@ func (c *libraryServiceClient) ListLibraries(ctx context.Context, req *v1.ListLi
 func (c *libraryServiceClient) ListItems(ctx context.Context, req *v1.ListItemsRequest) (*v1.ListItemsResponse, error) {
 	var res v1.ListItemsResponse
 	if err := c.client.CallUnary(ctx, libraryServiceListItemsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) ListSeasons(ctx context.Context, req *v1.ListSeasonsRequest) (*v1.ListSeasonsResponse, error) {
+	var res v1.ListSeasonsResponse
+	if err := c.client.CallUnary(ctx, libraryServiceListSeasonsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -131,6 +157,18 @@ func (h libraryServiceHandler) listItems(ctx context.Context, _ connect.Spec, st
 		return err
 	}
 	res, err := h.svc.ListItems(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) listSeasons(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListSeasonsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListSeasons(ctx, &req)
 	if err != nil {
 		return err
 	}

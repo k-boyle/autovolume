@@ -4,9 +4,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors'
 import { LibraryService } from '../../gen/autovolume/v1/library_pb'
-import type { MediaItem } from '../../gen/autovolume/v1/media_pb'
+import { MediaType, type MediaItem } from '../../gen/autovolume/v1/media_pb'
 import { VolumeService } from '../../gen/autovolume/v1/volume_pb'
 import { useDebounced } from '../../hooks/useDebounced'
+import { itemName } from '../../lib/format'
 import { Button } from '../Button'
 import { Notice } from '../Notice'
 import { Poster } from '../Poster'
@@ -126,7 +127,7 @@ function SavedGrid({ query, onEdit }: GridProps) {
   if (rules.isError) return <Notice tone="error">{errorMessage(rules.error)}</Notice>
 
   const needle = query.toLowerCase()
-  const items = rules.data.items.filter((item) => item.title.toLowerCase().includes(needle))
+  const items = rules.data.items.filter((item) => itemName(item).toLowerCase().includes(needle))
   if (items.length === 0) {
     return (
       <EmptyState>
@@ -150,7 +151,7 @@ function Grid({ items, onEdit }: { items: MediaItem[]; onEdit: (item: MediaItem)
             className="group block w-full rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
             <div className="relative transition-transform group-hover:-translate-y-0.5">
-              <Poster title={item.title} thumbUrl={item.thumbUrl} displayWidth={160} />
+              <Poster title={itemName(item)} thumbUrl={item.thumbUrl} displayWidth={160} />
               {item.volume !== undefined && (
                 <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-on-accent shadow">
                   <Volume2 aria-hidden className="size-3" />
@@ -159,8 +160,17 @@ function Grid({ items, onEdit }: { items: MediaItem[]; onEdit: (item: MediaItem)
                 </span>
               )}
             </div>
-            <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
-            {item.year > 0 && <p className="text-xs text-muted">{item.year}</p>}
+            {item.type === MediaType.SEASON ? (
+              <>
+                <p className="mt-2 truncate text-sm font-medium">{item.showTitle}</p>
+                <p className="text-xs text-muted">{item.title}</p>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
+                {item.year > 0 && <p className="text-xs text-muted">{item.year}</p>}
+              </>
+            )}
           </button>
         </li>
       ))}

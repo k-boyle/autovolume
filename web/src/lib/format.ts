@@ -1,3 +1,4 @@
+import { MediaType, type MediaItem } from '../gen/autovolume/v1/media_pb'
 import type { Episode } from '../gen/autovolume/v1/now_playing_pb'
 
 const relative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
@@ -13,6 +14,10 @@ export function timeAgo(date: Date): string {
     if (Math.abs(seconds) >= size) return relative.format(Math.round(seconds / size), unit)
   }
   return 'just now'
+}
+
+export function itemName(item: MediaItem): string {
+  return item.type === MediaType.SEASON ? `${item.showTitle}, ${item.title}` : item.title
 }
 
 export function episodeLabel(episode: Episode): string {

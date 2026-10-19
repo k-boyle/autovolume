@@ -81,9 +81,10 @@ var (
 
 // VolumeServiceClient is a client for the autovolume.v1.VolumeService service.
 type VolumeServiceClient interface {
+	// CodeInvalidArgument for anything but a movie, show or season.
 	SetVolumeRule(context.Context, *v1.SetVolumeRuleRequest) (*v1.SetVolumeRuleResponse, error)
 	ClearVolumeRule(context.Context, *v1.ClearVolumeRuleRequest) (*v1.ClearVolumeRuleResponse, error)
-	// Sorted by title.
+	// Sorted by title. Seasons sort by their show's title, then season number.
 	ListVolumeRules(context.Context, *v1.ListVolumeRulesRequest) (*v1.ListVolumeRulesResponse, error)
 	GetDefaultVolume(context.Context, *v1.GetDefaultVolumeRequest) (*v1.GetDefaultVolumeResponse, error)
 	SetDefaultVolume(context.Context, *v1.SetDefaultVolumeRequest) (*v1.SetDefaultVolumeResponse, error)
@@ -97,9 +98,10 @@ func NewVolumeServiceClient(client *connect.Client) VolumeServiceClient {
 
 // VolumeServiceHandler is an implementation of the autovolume.v1.VolumeService service.
 type VolumeServiceHandler interface {
+	// CodeInvalidArgument for anything but a movie, show or season.
 	SetVolumeRule(context.Context, *v1.SetVolumeRuleRequest) (*v1.SetVolumeRuleResponse, error)
 	ClearVolumeRule(context.Context, *v1.ClearVolumeRuleRequest) (*v1.ClearVolumeRuleResponse, error)
-	// Sorted by title.
+	// Sorted by title. Seasons sort by their show's title, then season number.
 	ListVolumeRules(context.Context, *v1.ListVolumeRulesRequest) (*v1.ListVolumeRulesResponse, error)
 	GetDefaultVolume(context.Context, *v1.GetDefaultVolumeRequest) (*v1.GetDefaultVolumeResponse, error)
 	SetDefaultVolume(context.Context, *v1.SetDefaultVolumeRequest) (*v1.SetDefaultVolumeResponse, error)

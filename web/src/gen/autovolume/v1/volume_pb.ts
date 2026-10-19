@@ -184,7 +184,8 @@ export const SetDefaultVolumeResponseSchema: GenMessage<SetDefaultVolumeResponse
   messageDesc(file_autovolume_v1_volume, 9);
 
 /**
- * Rules attach to movies and shows; episodes use their show's rule.
+ * Rules attach to movies, shows and seasons. An episode uses its season's rule,
+ * else its show's.
  * When playback on the selected player starts or resumes (buffering counts as
  * playing), the backend sets the TV to the rule, or the default without one.
  * On pause or stop it sets the default. Act only on state changes: Plex
@@ -195,6 +196,8 @@ export const SetDefaultVolumeResponseSchema: GenMessage<SetDefaultVolumeResponse
  */
 export const VolumeService: GenService<{
   /**
+   * CodeInvalidArgument for anything but a movie, show or season.
+   *
    * @generated from rpc autovolume.v1.VolumeService.SetVolumeRule
    */
   setVolumeRule: {
@@ -211,7 +214,7 @@ export const VolumeService: GenService<{
     output: typeof ClearVolumeRuleResponseSchema;
   },
   /**
-   * Sorted by title.
+   * Sorted by title. Seasons sort by their show's title, then season number.
    *
    * @generated from rpc autovolume.v1.VolumeService.ListVolumeRules
    */

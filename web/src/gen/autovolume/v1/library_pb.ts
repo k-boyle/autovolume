@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file autovolume/v1/library.proto.
  */
 export const file_autovolume_v1_library: GenFile = /*@__PURE__*/
-  fileDesc("ChthdXRvdm9sdW1lL3YxL2xpYnJhcnkucHJvdG8SDWF1dG92b2x1bWUudjEiTAoHTGlicmFyeRIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRImCgR0eXBlGAMgASgOMhguYXV0b3ZvbHVtZS52MS5NZWRpYVR5cGUiFgoUTGlzdExpYnJhcmllc1JlcXVlc3QiQgoVTGlzdExpYnJhcmllc1Jlc3BvbnNlEikKCWxpYnJhcmllcxgBIAMoCzIWLmF1dG92b2x1bWUudjEuTGlicmFyeSJUChBMaXN0SXRlbXNSZXF1ZXN0EhIKCmxpYnJhcnlfaWQYASABKAkSDQoFcXVlcnkYAiABKAkSDgoGb2Zmc2V0GAMgASgFEg0KBWxpbWl0GAQgASgFIksKEUxpc3RJdGVtc1Jlc3BvbnNlEicKBWl0ZW1zGAEgAygLMhguYXV0b3ZvbHVtZS52MS5NZWRpYUl0ZW0SDQoFdG90YWwYAiABKAUyvAEKDkxpYnJhcnlTZXJ2aWNlEloKDUxpc3RMaWJyYXJpZXMSIy5hdXRvdm9sdW1lLnYxLkxpc3RMaWJyYXJpZXNSZXF1ZXN0GiQuYXV0b3ZvbHVtZS52MS5MaXN0TGlicmFyaWVzUmVzcG9uc2USTgoJTGlzdEl0ZW1zEh8uYXV0b3ZvbHVtZS52MS5MaXN0SXRlbXNSZXF1ZXN0GiAuYXV0b3ZvbHVtZS52MS5MaXN0SXRlbXNSZXNwb25zZUK0AQoRY29tLmF1dG92b2x1bWUudjFCDExpYnJhcnlQcm90b1ABWjxnaXRodWIuY29tL2stYm95bGUvYXV0b3ZvbHVtZS9nZW4vYXV0b3ZvbHVtZS92MTthdXRvdm9sdW1ldjGiAgNBWFiqAg1BdXRvdm9sdW1lLlYxygINQXV0b3ZvbHVtZVxWMeICGUF1dG92b2x1bWVcVjFcR1BCTWV0YWRhdGHqAg5BdXRvdm9sdW1lOjpWMWIGcHJvdG8z", [file_autovolume_v1_media]);
+  fileDesc("ChthdXRvdm9sdW1lL3YxL2xpYnJhcnkucHJvdG8SDWF1dG92b2x1bWUudjEiTAoHTGlicmFyeRIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRImCgR0eXBlGAMgASgOMhguYXV0b3ZvbHVtZS52MS5NZWRpYVR5cGUiFgoUTGlzdExpYnJhcmllc1JlcXVlc3QiQgoVTGlzdExpYnJhcmllc1Jlc3BvbnNlEikKCWxpYnJhcmllcxgBIAMoCzIWLmF1dG92b2x1bWUudjEuTGlicmFyeSJUChBMaXN0SXRlbXNSZXF1ZXN0EhIKCmxpYnJhcnlfaWQYASABKAkSDQoFcXVlcnkYAiABKAkSDgoGb2Zmc2V0GAMgASgFEg0KBWxpbWl0GAQgASgFIksKEUxpc3RJdGVtc1Jlc3BvbnNlEicKBWl0ZW1zGAEgAygLMhguYXV0b3ZvbHVtZS52MS5NZWRpYUl0ZW0SDQoFdG90YWwYAiABKAUiLQoSTGlzdFNlYXNvbnNSZXF1ZXN0EhcKD3Nob3dfcmF0aW5nX2tleRgBIAEoCSJAChNMaXN0U2Vhc29uc1Jlc3BvbnNlEikKB3NlYXNvbnMYASADKAsyGC5hdXRvdm9sdW1lLnYxLk1lZGlhSXRlbTKSAgoOTGlicmFyeVNlcnZpY2USWgoNTGlzdExpYnJhcmllcxIjLmF1dG92b2x1bWUudjEuTGlzdExpYnJhcmllc1JlcXVlc3QaJC5hdXRvdm9sdW1lLnYxLkxpc3RMaWJyYXJpZXNSZXNwb25zZRJOCglMaXN0SXRlbXMSHy5hdXRvdm9sdW1lLnYxLkxpc3RJdGVtc1JlcXVlc3QaIC5hdXRvdm9sdW1lLnYxLkxpc3RJdGVtc1Jlc3BvbnNlElQKC0xpc3RTZWFzb25zEiEuYXV0b3ZvbHVtZS52MS5MaXN0U2Vhc29uc1JlcXVlc3QaIi5hdXRvdm9sdW1lLnYxLkxpc3RTZWFzb25zUmVzcG9uc2VCtAEKEWNvbS5hdXRvdm9sdW1lLnYxQgxMaWJyYXJ5UHJvdG9QAVo8Z2l0aHViLmNvbS9rLWJveWxlL2F1dG92b2x1bWUvZ2VuL2F1dG92b2x1bWUvdjE7YXV0b3ZvbHVtZXYxogIDQVhYqgINQXV0b3ZvbHVtZS5WMcoCDUF1dG92b2x1bWVcVjHiAhlBdXRvdm9sdW1lXFYxXEdQQk1ldGFkYXRh6gIOQXV0b3ZvbHVtZTo6VjFiBnByb3RvMw", [file_autovolume_v1_media]);
 
 /**
  * @generated from message autovolume.v1.Library
@@ -128,6 +128,40 @@ export const ListItemsResponseSchema: GenMessage<ListItemsResponse> = /*@__PURE_
   messageDesc(file_autovolume_v1_library, 4);
 
 /**
+ * @generated from message autovolume.v1.ListSeasonsRequest
+ */
+export type ListSeasonsRequest = Message<"autovolume.v1.ListSeasonsRequest"> & {
+  /**
+   * @generated from field: string show_rating_key = 1;
+   */
+  showRatingKey: string;
+};
+
+/**
+ * Describes the message autovolume.v1.ListSeasonsRequest.
+ * Use `create(ListSeasonsRequestSchema)` to create a new message.
+ */
+export const ListSeasonsRequestSchema: GenMessage<ListSeasonsRequest> = /*@__PURE__*/
+  messageDesc(file_autovolume_v1_library, 5);
+
+/**
+ * @generated from message autovolume.v1.ListSeasonsResponse
+ */
+export type ListSeasonsResponse = Message<"autovolume.v1.ListSeasonsResponse"> & {
+  /**
+   * @generated from field: repeated autovolume.v1.MediaItem seasons = 1;
+   */
+  seasons: MediaItem[];
+};
+
+/**
+ * Describes the message autovolume.v1.ListSeasonsResponse.
+ * Use `create(ListSeasonsResponseSchema)` to create a new message.
+ */
+export const ListSeasonsResponseSchema: GenMessage<ListSeasonsResponse> = /*@__PURE__*/
+  messageDesc(file_autovolume_v1_library, 6);
+
+/**
  * @generated from service autovolume.v1.LibraryService
  */
 export const LibraryService: GenService<{
@@ -150,6 +184,16 @@ export const LibraryService: GenService<{
     methodKind: "unary";
     input: typeof ListItemsRequestSchema;
     output: typeof ListItemsResponseSchema;
+  },
+  /**
+   * In Plex's order, so Specials come first. CodeNotFound if show_rating_key isn't a show.
+   *
+   * @generated from rpc autovolume.v1.LibraryService.ListSeasons
+   */
+  listSeasons: {
+    methodKind: "unary";
+    input: typeof ListSeasonsRequestSchema;
+    output: typeof ListSeasonsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_autovolume_v1_library, 0);

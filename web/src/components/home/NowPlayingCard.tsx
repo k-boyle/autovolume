@@ -46,7 +46,7 @@ export function NowPlayingCard() {
 
   return (
     <PlayingCard
-      key={playback.item.ratingKey}
+      key={playback.season?.ratingKey ?? playback.item.ratingKey}
       playback={playback}
       tv={snapshot.tv}
       defaultVolume={snapshot.defaultVolume}
@@ -64,15 +64,19 @@ interface PlayingCardProps {
 
 function PlayingCard({ playback, tv, defaultVolume, playerName }: PlayingCardProps) {
   const item = playback.item!
-  const rule = item.volume
+  const season = playback.season
+  const rule = season?.volume ?? item.volume
   const kind = item.type === MediaType.SHOW ? 'show' : 'movie'
+  const [scope, setScope] = useState<'item' | 'season'>(season?.volume !== undefined ? 'season' : 'item')
+  const target = scope === 'season' && season ? season : item
+  const targetName = target === season ? season.title : `this ${kind}`
   const playing = playback.state === PlaybackState.PLAYING
   const tvOn = tv?.power === TvPower.ACTIVE
   const tvVolume = tvOn ? tv?.volume : undefined
 
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<number>()
-  const value = draft ?? rule ?? defaultVolume ?? tvVolume ?? 20
+  const value = draft ?? target.volume ?? rule ?? defaultVolume ?? tvVolume ?? 20
 
   const save = useMutation(VolumeService.method.setVolumeRule, { onSuccess: () => invalidateVolumeRuleQueries(queryClient) })
   const clear = useMutation(VolumeService.method.clearVolumeRule, { onSuccess: () => invalidateVolumeRuleQueries(queryClient) })
@@ -80,7 +84,10 @@ function PlayingCard({ playback, tv, defaultVolume, playerName }: PlayingCardPro
   const error = save.error ?? clear.error ?? apply.error
 
   let ruleLine: string
-  if (rule !== undefined) ruleLine = `Saved volume for this ${kind}: ${rule}`
+  if (season?.volume !== undefined) {
+    ruleLine = `Saved volume for ${season.title}: ${season.volume}`
+    if (item.volume !== undefined) ruleLine += ` (show: ${item.volume})`
+  } else if (item.volume !== undefined) ruleLine = `Saved volume for this ${kind}: ${item.volume}`
   else if (defaultVolume !== undefined) ruleLine = `No saved volume yet, so it plays at your default (${defaultVolume}).`
   else ruleLine = `No saved volume or default, so AutoVolume leaves the TV alone.`
 
@@ -106,14 +113,35 @@ function PlayingCard({ playback, tv, defaultVolume, playerName }: PlayingCardPro
             {tvVolume !== undefined && <span className="text-muted tabular-nums">TV is at {tvVolume}</span>}
           </div>
           <VolumeControl value={value} onChange={setDraft} label={`Volume for ${item.title}`} />
+          {season && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+              <span className="text-muted">Save for</span>
+              <div role="radiogroup" aria-label="Save for" className="inline-flex rounded-lg border border-border p-0.5">
+                {(['item', 'season'] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={scope === option}
+                    onClick={() => setScope(option)}
+                    className={`rounded-md px-3 py-1.5 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+                      scope === option ? 'bg-surface-2 text-fg' : 'text-muted hover:text-fg'
+                    }`}
+                  >
+                    {option === 'season' ? season.title : 'Whole show'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
               variant="primary"
               loading={save.isPending}
-              disabled={value === rule}
-              onClick={() => save.mutate({ ratingKey: item.ratingKey, volume: value })}
+              disabled={value === target.volume}
+              onClick={() => save.mutate({ ratingKey: target.ratingKey, volume: value })}
             >
-              Save {value} for this {kind}
+              Save {value} for {targetName}
             </Button>
             <Button
               loading={apply.isPending}
@@ -122,13 +150,13 @@ function PlayingCard({ playback, tv, defaultVolume, playerName }: PlayingCardPro
             >
               Set TV to {value} now
             </Button>
-            {rule !== undefined && (
+            {target.volume !== undefined && (
               <Button
                 variant="ghost"
                 loading={clear.isPending}
-                onClick={() => clear.mutate({ ratingKey: item.ratingKey })}
+                onClick={() => clear.mutate({ ratingKey: target.ratingKey })}
               >
-                Clear saved volume
+                Clear volume for {targetName}
               </Button>
             )}
           </div>

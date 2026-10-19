@@ -28,6 +28,8 @@ message Playback {
   MediaItem item = 2;
   // Set when an episode is playing; `item` is then its show.
   Episode episode = 3;
+  // Set when an episode is playing. A volume here wins over `item`'s.
+  MediaItem season = 4;
 }
 
 message WatchNowPlayingRequest {}

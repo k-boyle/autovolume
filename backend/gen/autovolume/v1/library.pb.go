@@ -282,6 +282,94 @@ func (x *ListItemsResponse) GetTotal() int32 {
 	return 0
 }
 
+type ListSeasonsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ShowRatingKey string                 `protobuf:"bytes,1,opt,name=show_rating_key,json=showRatingKey,proto3" json:"show_rating_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSeasonsRequest) Reset() {
+	*x = ListSeasonsRequest{}
+	mi := &file_autovolume_v1_library_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSeasonsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSeasonsRequest) ProtoMessage() {}
+
+func (x *ListSeasonsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_autovolume_v1_library_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSeasonsRequest.ProtoReflect.Descriptor instead.
+func (*ListSeasonsRequest) Descriptor() ([]byte, []int) {
+	return file_autovolume_v1_library_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListSeasonsRequest) GetShowRatingKey() string {
+	if x != nil {
+		return x.ShowRatingKey
+	}
+	return ""
+}
+
+type ListSeasonsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Seasons       []*MediaItem           `protobuf:"bytes,1,rep,name=seasons,proto3" json:"seasons,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSeasonsResponse) Reset() {
+	*x = ListSeasonsResponse{}
+	mi := &file_autovolume_v1_library_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSeasonsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSeasonsResponse) ProtoMessage() {}
+
+func (x *ListSeasonsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_autovolume_v1_library_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSeasonsResponse.ProtoReflect.Descriptor instead.
+func (*ListSeasonsResponse) Descriptor() ([]byte, []int) {
+	return file_autovolume_v1_library_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListSeasonsResponse) GetSeasons() []*MediaItem {
+	if x != nil {
+		return x.Seasons
+	}
+	return nil
+}
+
 var File_autovolume_v1_library_proto protoreflect.FileDescriptor
 
 const file_autovolume_v1_library_proto_rawDesc = "" +
@@ -302,10 +390,15 @@ const file_autovolume_v1_library_proto_rawDesc = "" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\"Y\n" +
 	"\x11ListItemsResponse\x12.\n" +
 	"\x05items\x18\x01 \x03(\v2\x18.autovolume.v1.MediaItemR\x05items\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total2\xbc\x01\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"<\n" +
+	"\x12ListSeasonsRequest\x12&\n" +
+	"\x0fshow_rating_key\x18\x01 \x01(\tR\rshowRatingKey\"I\n" +
+	"\x13ListSeasonsResponse\x122\n" +
+	"\aseasons\x18\x01 \x03(\v2\x18.autovolume.v1.MediaItemR\aseasons2\x92\x02\n" +
 	"\x0eLibraryService\x12Z\n" +
 	"\rListLibraries\x12#.autovolume.v1.ListLibrariesRequest\x1a$.autovolume.v1.ListLibrariesResponse\x12N\n" +
-	"\tListItems\x12\x1f.autovolume.v1.ListItemsRequest\x1a .autovolume.v1.ListItemsResponseB\xb4\x01\n" +
+	"\tListItems\x12\x1f.autovolume.v1.ListItemsRequest\x1a .autovolume.v1.ListItemsResponse\x12T\n" +
+	"\vListSeasons\x12!.autovolume.v1.ListSeasonsRequest\x1a\".autovolume.v1.ListSeasonsResponseB\xb4\x01\n" +
 	"\x11com.autovolume.v1B\fLibraryProtoP\x01Z<github.com/k-boyle/autovolume/gen/autovolume/v1;autovolumev1\xa2\x02\x03AXX\xaa\x02\rAutovolume.V1\xca\x02\rAutovolume\\V1\xe2\x02\x19Autovolume\\V1\\GPBMetadata\xea\x02\x0eAutovolume::V1b\x06proto3"
 
 var (
@@ -320,29 +413,34 @@ func file_autovolume_v1_library_proto_rawDescGZIP() []byte {
 	return file_autovolume_v1_library_proto_rawDescData
 }
 
-var file_autovolume_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_autovolume_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_autovolume_v1_library_proto_goTypes = []any{
 	(*Library)(nil),               // 0: autovolume.v1.Library
 	(*ListLibrariesRequest)(nil),  // 1: autovolume.v1.ListLibrariesRequest
 	(*ListLibrariesResponse)(nil), // 2: autovolume.v1.ListLibrariesResponse
 	(*ListItemsRequest)(nil),      // 3: autovolume.v1.ListItemsRequest
 	(*ListItemsResponse)(nil),     // 4: autovolume.v1.ListItemsResponse
-	(MediaType)(0),                // 5: autovolume.v1.MediaType
-	(*MediaItem)(nil),             // 6: autovolume.v1.MediaItem
+	(*ListSeasonsRequest)(nil),    // 5: autovolume.v1.ListSeasonsRequest
+	(*ListSeasonsResponse)(nil),   // 6: autovolume.v1.ListSeasonsResponse
+	(MediaType)(0),                // 7: autovolume.v1.MediaType
+	(*MediaItem)(nil),             // 8: autovolume.v1.MediaItem
 }
 var file_autovolume_v1_library_proto_depIdxs = []int32{
-	5, // 0: autovolume.v1.Library.type:type_name -> autovolume.v1.MediaType
+	7, // 0: autovolume.v1.Library.type:type_name -> autovolume.v1.MediaType
 	0, // 1: autovolume.v1.ListLibrariesResponse.libraries:type_name -> autovolume.v1.Library
-	6, // 2: autovolume.v1.ListItemsResponse.items:type_name -> autovolume.v1.MediaItem
-	1, // 3: autovolume.v1.LibraryService.ListLibraries:input_type -> autovolume.v1.ListLibrariesRequest
-	3, // 4: autovolume.v1.LibraryService.ListItems:input_type -> autovolume.v1.ListItemsRequest
-	2, // 5: autovolume.v1.LibraryService.ListLibraries:output_type -> autovolume.v1.ListLibrariesResponse
-	4, // 6: autovolume.v1.LibraryService.ListItems:output_type -> autovolume.v1.ListItemsResponse
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	8, // 2: autovolume.v1.ListItemsResponse.items:type_name -> autovolume.v1.MediaItem
+	8, // 3: autovolume.v1.ListSeasonsResponse.seasons:type_name -> autovolume.v1.MediaItem
+	1, // 4: autovolume.v1.LibraryService.ListLibraries:input_type -> autovolume.v1.ListLibrariesRequest
+	3, // 5: autovolume.v1.LibraryService.ListItems:input_type -> autovolume.v1.ListItemsRequest
+	5, // 6: autovolume.v1.LibraryService.ListSeasons:input_type -> autovolume.v1.ListSeasonsRequest
+	2, // 7: autovolume.v1.LibraryService.ListLibraries:output_type -> autovolume.v1.ListLibrariesResponse
+	4, // 8: autovolume.v1.LibraryService.ListItems:output_type -> autovolume.v1.ListItemsResponse
+	6, // 9: autovolume.v1.LibraryService.ListSeasons:output_type -> autovolume.v1.ListSeasonsResponse
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_autovolume_v1_library_proto_init() }
@@ -357,7 +455,7 @@ func file_autovolume_v1_library_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_autovolume_v1_library_proto_rawDesc), len(file_autovolume_v1_library_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
