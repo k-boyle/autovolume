@@ -17,10 +17,6 @@ func NewHandler() service.LibraryServiceHandler {
 	return libraryServiceHandler{}
 }
 
-func (l libraryServiceHandler) ListLibraries(ctx context.Context, req *ListLibrariesRequest) (*ListLibrariesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
-}
-
 func (l libraryServiceHandler) ListItems(ctx context.Context, req *ListItemsRequest) (*ListItemsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }

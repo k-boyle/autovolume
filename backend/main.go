@@ -11,6 +11,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -88,18 +89,28 @@ func main() {
 	pub, prv := getKeys(settings)
 	plexAuthClient := plex.NewAuthClient(http.DefaultClient, settings.PlexClientId, pub, prv)
 
-	plexApiClient := plex.NewApiClient(http.DefaultClient, settings.PlexClientId, func(ctx context.Context) (string, error) {
-		settings, err := db.ReadSettings(ctx)
-		if err != nil {
-			return "", err
-		}
+	plexApiClient := plex.NewApiClient(http.DefaultClient, settings.PlexClientId,
+		func(ctx context.Context) (*url.URL, string, error) {
+			settings, err := db.ReadSettings(ctx)
+			if err != nil {
+				return nil, "", err
+			}
 
-		return settings.PlexToken, nil
-	})
-	if err != nil {
-		slog.Error("failed to create plex client", slog.Any("error", err))
-		return
-	}
+			return plex.AppUrl, settings.PlexToken, nil
+		},
+		func(ctx context.Context) (*url.URL, string, error) {
+			settings, err := db.ReadSettings(ctx)
+			if err != nil {
+				return nil, "", err
+			}
+			u, err := url.Parse(settings.ServerUrl)
+			if err != nil {
+				return nil, "", err
+			}
+
+			return u, settings.ServerToken, nil
+		},
+	)
 
 	rotator := plex.NewRotator(plexAuthClient, db)
 	go func() {

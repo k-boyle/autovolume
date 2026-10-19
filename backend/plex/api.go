@@ -7,39 +7,44 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 )
 
 var AppUrl = mustParse("https://app.plex.tv")
 
 type ApiClient struct {
-	client        *http.Client
-	clientId      string
-	tokenAccessor func(context.Context) (string, error)
+	client       *http.Client
+	clientId     string
+	plexAccessor Accessor
+	pmsAccessor  Accessor
 
 	GetUsers    Endpoint[Users]
 	ListDevices Endpoint[[]Device]
 	GetIdentity Endpoint[Identity]
 }
 
-func NewApiClient(client *http.Client, clientId string, tokenAccessor func(context.Context) (string, error)) *ApiClient {
+type Accessor func(context.Context) (*url.URL, string, error)
+
+func NewApiClient(client *http.Client, clientId string, plexAccessor Accessor, pmsAccessor Accessor) *ApiClient {
 	c := &ApiClient{
-		client:        client,
-		clientId:      clientId,
-		tokenAccessor: tokenAccessor,
+		client:       client,
+		clientId:     clientId,
+		plexAccessor: plexAccessor,
+		pmsAccessor:  pmsAccessor,
 	}
-	c.GetUsers = &endpoint[Users]{
+	c.GetUsers = &plexEndpoint[Users]{
 		c:      c,
 		path:   "/api/v2/home/users",
 		method: "GET",
 	}
-	c.ListDevices = &endpoint[[]Device]{
+	c.ListDevices = &plexEndpoint[[]Device]{
 		c:      c,
 		path:   "/api/v2/devices",
 		method: "GET",
 	}
-	c.GetIdentity = &mediaContainerEndpoint[Identity]{
+	c.GetIdentity = &pmsEndpoint[Identity]{
 		c:      c,
-		path:   "/api/v2/identity",
+		path:   "/identity",
 		method: "GET",
 	}
 	return c
@@ -49,7 +54,7 @@ type Endpoint[R any] interface {
 	Execute(context.Context, ...Override) (R, error)
 }
 
-type endpoint[R any] struct {
+type plexEndpoint[R any] struct {
 	c      *ApiClient
 	path   string
 	method string
@@ -57,16 +62,17 @@ type endpoint[R any] struct {
 	zero R
 }
 
-type mediaContainerEndpoint[R any] struct {
-	endpoint[mediaContainer[R]]
+type pmsEndpoint[R any] struct {
+	plexEndpoint[mediaContainer[R]]
 }
 
 type Override struct {
-	Url string
+	Url   string
+	Token string
 }
 
-func (e *mediaContainerEndpoint[R]) Execute(ctx context.Context, overrides ...Override) (R, error) {
-	r, err := e.endpoint.Execute(ctx, overrides...)
+func (e *pmsEndpoint[R]) Execute(ctx context.Context, overrides ...Override) (R, error) {
+	r, err := e.plexEndpoint.execute(ctx, e.c.pmsAccessor, overrides...)
 	if err != nil {
 		var zero R
 		return zero, err
@@ -75,19 +81,28 @@ func (e *mediaContainerEndpoint[R]) Execute(ctx context.Context, overrides ...Ov
 	return r.Value, nil
 }
 
-func (e *endpoint[R]) Execute(ctx context.Context, overrides ...Override) (R, error) {
-	token, err := e.c.tokenAccessor(ctx)
+func (e *plexEndpoint[R]) Execute(ctx context.Context, overrides ...Override) (R, error) {
+	return e.execute(ctx, e.c.plexAccessor, overrides...)
+}
+
+func (e *plexEndpoint[R]) execute(ctx context.Context, accessor Accessor, overrides ...Override) (R, error) {
+	u, token, err := accessor(ctx)
 	if err != nil {
 		return e.zero, err
 	}
 
-	u := AppUrl.JoinPath(e.path)
+	u = u.JoinPath(e.path)
 	for _, override := range overrides {
-		u, err = u.Parse(override.Url)
-		if err != nil {
-			return e.zero, err
+		if override.Url != "" {
+			u, err = u.Parse(override.Url)
+			if err != nil {
+				return e.zero, err
+			}
+			u = u.JoinPath(e.path)
 		}
-		u = u.JoinPath(e.path)
+		if override.Token != "" {
+			token = override.Token
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, e.method, u.String(), nil)
