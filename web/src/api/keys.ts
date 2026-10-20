@@ -10,6 +10,6 @@ export function allQueriesKey(method: DescMethodUnary) {
 
 export function invalidateVolumeRuleQueries(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: allQueriesKey(LibraryService.method.listItems) })
-  void queryClient.invalidateQueries({ queryKey: allQueriesKey(LibraryService.method.listSeasons) })
+  void queryClient.resetQueries({ queryKey: allQueriesKey(LibraryService.method.listSeasons) })
   void queryClient.invalidateQueries({ queryKey: allQueriesKey(VolumeService.method.listVolumeRules) })
 }

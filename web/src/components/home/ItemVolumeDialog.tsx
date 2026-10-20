@@ -1,10 +1,11 @@
-import { useMutation, useQuery } from '@connectrpc/connect-query'
-import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Volume2, X } from 'lucide-react'
+import { createClient, type ConnectError } from '@connectrpc/connect'
+import { useMutation as useRpcMutation, useQuery, useTransport } from '@connectrpc/connect-query'
+import { useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
+import { X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import { errorMessage } from '../../api/errors'
 import { invalidateVolumeRuleQueries } from '../../api/keys'
-import { LibraryService } from '../../gen/autovolume/v1/library_pb'
+import { LibraryService, type ListSeasonsResponse } from '../../gen/autovolume/v1/library_pb'
 import { MediaType, type MediaItem } from '../../gen/autovolume/v1/media_pb'
 import { VolumeService } from '../../gen/autovolume/v1/volume_pb'
 import { itemName } from '../../lib/format'
@@ -13,6 +14,7 @@ import { Notice } from '../Notice'
 import { Poster } from '../Poster'
 import { Spinner } from '../Spinner'
 import { VolumeControl } from '../VolumeControl'
+import { VolumeStepper } from '../VolumeStepper'
 
 export function ItemVolumeDialog({ item, onClose }: { item: MediaItem | null; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null)
@@ -33,48 +35,57 @@ export function ItemVolumeDialog({ item, onClose }: { item: MediaItem | null; on
       aria-label={item ? `Volume for ${itemName(item)}` : undefined}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-border bg-surface p-0 text-fg"
     >
-      {item && <DialogContent key={item.ratingKey} item={item} onClose={onClose} />}
+      {item && <Editor key={item.ratingKey} item={item} onClose={onClose} />}
     </dialog>
   )
 }
 
-function DialogContent({ item, onClose }: { item: MediaItem; onClose: () => void }) {
-  const [season, setSeason] = useState<MediaItem | null>(null)
-
-  if (season) {
-    const back = () => setSeason(null)
-    return <Editor key={season.ratingKey} item={season} onDone={back} onClose={onClose} backTo={item.title} />
-  }
-  return (
-    <>
-      <Editor item={item} onDone={onClose} onClose={onClose} />
-      {item.type === MediaType.SHOW && <SeasonList show={item} onPick={setSeason} />}
-    </>
-  )
+interface VolumeChange {
+  ratingKey: string
+  volume?: number
 }
 
-interface EditorProps {
-  item: MediaItem
-  onDone: () => void
-  onClose: () => void
-  backTo?: string
-}
-
-function Editor({ item, onDone, onClose, backTo }: EditorProps) {
+function Editor({ item, onClose }: { item: MediaItem; onClose: () => void }) {
   const queryClient = useQueryClient()
+  const transport = useTransport()
   const isSeason = item.type === MediaType.SEASON
+  const isShow = item.type === MediaType.SHOW
   const defaults = useQuery(VolumeService.method.getDefaultVolume)
   const rules = useQuery(VolumeService.method.listVolumeRules, {}, { enabled: isSeason })
+  const seasons = useQuery(LibraryService.method.listSeasons, { showRatingKey: item.ratingKey }, { enabled: isShow })
   const showVolume = isSeason ? rules.data?.items.find((r) => r.ratingKey === item.showRatingKey)?.volume : undefined
   const [draft, setDraft] = useState<number>()
+  const [overrides, setOverrides] = useState<Record<string, number | null>>({})
   const value = draft ?? item.volume ?? showVolume ?? defaults.data?.volume ?? 20
 
-  const onSuccess = () => {
-    invalidateVolumeRuleQueries(queryClient)
-    onDone()
+  const seasonVolume = (season: MediaItem) => {
+    const override = overrides[season.ratingKey]
+    return override === undefined ? season.volume : (override ?? undefined)
   }
-  const save = useMutation(VolumeService.method.setVolumeRule, { onSuccess })
-  const clear = useMutation(VolumeService.method.clearVolumeRule, { onSuccess })
+  const seasonChanges: VolumeChange[] = (seasons.data?.seasons ?? [])
+    .filter((season) => seasonVolume(season) !== season.volume)
+    .map((season) => ({ ratingKey: season.ratingKey, volume: seasonVolume(season) }))
+  const saveItem = value !== item.volume && (draft !== undefined || seasonChanges.length === 0)
+  const changes = saveItem ? [{ ratingKey: item.ratingKey, volume: value }, ...seasonChanges] : seasonChanges
+
+  const save = useMutation({
+    mutationFn: (changes: VolumeChange[]) => {
+      const client = createClient(VolumeService, transport)
+      return Promise.all(
+        changes.map(({ ratingKey, volume }) =>
+          volume === undefined ? client.clearVolumeRule({ ratingKey }) : client.setVolumeRule({ ratingKey, volume }),
+        ),
+      )
+    },
+    onSettled: () => invalidateVolumeRuleQueries(queryClient),
+    onSuccess: onClose,
+  })
+  const clear = useRpcMutation(VolumeService.method.clearVolumeRule, {
+    onSuccess: () => {
+      invalidateVolumeRuleQueries(queryClient)
+      onClose()
+    },
+  })
   const error = save.error ?? clear.error
 
   let status: string
@@ -84,121 +95,172 @@ function Editor({ item, onDone, onClose, backTo }: EditorProps) {
 
   let explanation: string
   if (isSeason) explanation = `Overrides the show's volume for every episode in ${item.title}.`
-  else if (item.type === MediaType.SHOW) {
+  else if (isShow) {
     explanation = 'The TV switches to this whenever an episode starts or resumes, unless its season has its own volume.'
   } else explanation = 'The TV switches to this whenever this movie starts or resumes.'
 
   return (
-    <div className="p-5">
-      {backTo && (
-        <button
-          type="button"
-          onClick={onDone}
-          className="mb-3 -ml-1 inline-flex items-center gap-1 rounded text-sm text-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          <ChevronLeft aria-hidden className="size-4" />
-          {backTo}
-        </button>
-      )}
-      <div className="flex gap-4">
-        <div className="w-16 shrink-0">
-          <Poster title={itemName(item)} thumbUrl={item.thumbUrl} displayWidth={64} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-lg leading-snug font-semibold">{isSeason ? item.showTitle : item.title}</h2>
-          <p className="text-sm text-muted">
-            {isSeason && `${item.title} · `}
-            {!isSeason && item.year > 0 && `${item.year} · `}
-            {status}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="grid size-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
-
-      <p className="mt-5 mb-3 text-sm text-muted">{explanation}</p>
-      <VolumeControl value={value} onChange={setDraft} label={`Volume for ${itemName(item)}`} />
-      {error && (
-        <div className="mt-3">
-          <Notice tone="error">{errorMessage(error)}</Notice>
-        </div>
-      )}
-
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        {item.volume !== undefined && (
-          <Button variant="danger" loading={clear.isPending} onClick={() => clear.mutate({ ratingKey: item.ratingKey })}>
-            {isSeason ? 'Remove override' : 'Remove'}
-          </Button>
-        )}
-        <div className="ml-auto flex gap-2">
-          <Button variant="ghost" onClick={onDone}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            loading={save.isPending}
-            disabled={value === item.volume}
-            onClick={() => save.mutate({ ratingKey: item.ratingKey, volume: value })}
+    <>
+      <div className="p-5">
+        <div className="flex gap-4">
+          <div className="w-16 shrink-0">
+            <Poster title={itemName(item)} thumbUrl={item.thumbUrl} displayWidth={64} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg leading-snug font-semibold">{isSeason ? item.showTitle : item.title}</h2>
+            <p className="text-sm text-muted">
+              {isSeason && `${item.title} · `}
+              {!isSeason && item.year > 0 && `${item.year} · `}
+              {status}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="grid size-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
           >
-            Save {value}
-          </Button>
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <p className="mt-5 mb-3 text-sm text-muted">{explanation}</p>
+        <VolumeControl value={value} onChange={setDraft} label={`Volume for ${itemName(item)}`} />
+      </div>
+
+      {isShow && (
+        <SeasonOverrides
+          seasons={seasons}
+          volumeOf={seasonVolume}
+          showVolume={value}
+          onChange={(season, volume) => setOverrides((o) => ({ ...o, [season.ratingKey]: volume }))}
+        />
+      )}
+
+      <div className="sticky bottom-0 border-t border-border bg-surface px-5 py-4">
+        {error && (
+          <div className="mb-3">
+            <Notice tone="error">{errorMessage(error)}</Notice>
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {item.volume !== undefined && (
+            <Button variant="danger" loading={clear.isPending} onClick={() => clear.mutate({ ratingKey: item.ratingKey })}>
+              {isSeason ? 'Remove override' : 'Remove'}
+            </Button>
+          )}
+          <div className="ml-auto flex gap-2">
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={save.isPending}
+              disabled={changes.length === 0}
+              onClick={() => save.mutate(changes)}
+            >
+              {seasonChanges.length > 0 ? 'Save changes' : `Save ${value}`}
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
-function SeasonList({ show, onPick }: { show: MediaItem; onPick: (season: MediaItem) => void }) {
-  const seasons = useQuery(LibraryService.method.listSeasons, { showRatingKey: show.ratingKey })
+interface SeasonOverridesProps {
+  seasons: UseQueryResult<ListSeasonsResponse, ConnectError>
+  volumeOf: (season: MediaItem) => number | undefined
+  showVolume: number
+  onChange: (season: MediaItem, volume: number | null) => void
+}
+
+function SeasonOverrides({ seasons, volumeOf, showVolume, onChange }: SeasonOverridesProps) {
   const headingId = useId()
 
   return (
-    <section aria-labelledby={headingId} className="border-t border-border px-5 pt-4 pb-5">
+    <section aria-labelledby={headingId} className="border-t border-border px-5 pt-4 pb-2">
       <h3 id={headingId} className="text-sm font-semibold">
         Seasons
       </h3>
-      <p className="mt-1 text-sm text-muted">Give a season its own volume to override the show's.</p>
+      <p className="mt-1 text-sm text-muted">Seasons use the show's volume unless you override them.</p>
       {seasons.isPending && (
-        <div className="mt-3">
+        <div className="my-3">
           <Spinner />
         </div>
       )}
       {seasons.isError && (
-        <div className="mt-3">
+        <div className="my-3">
           <Notice tone="error">{errorMessage(seasons.error)}</Notice>
         </div>
       )}
       {seasons.data && (
         <ul className="mt-2 divide-y divide-border">
           {seasons.data.seasons.map((season) => (
-            <li key={season.ratingKey}>
-              <button
-                type="button"
-                onClick={() => onPick(season)}
-                className="flex w-full items-center gap-3 rounded py-2.5 text-left text-sm hover:text-accent-fg focus-visible:outline-2 focus-visible:outline-accent"
-              >
-                <span className="flex-1 truncate font-medium">{season.title}</span>
-                {season.volume !== undefined ? (
-                  <span className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-on-accent">
-                    <Volume2 aria-hidden className="size-3" />
-                    <span className="sr-only">Own volume</span>
-                    {season.volume}
-                  </span>
-                ) : (
-                  <span className="text-muted">Same as show</span>
-                )}
-                <ChevronRight aria-hidden className="size-4 text-muted" />
-              </button>
-            </li>
+            <SeasonRow
+              key={season.ratingKey}
+              season={season}
+              volume={volumeOf(season)}
+              onOverride={() => onChange(season, showVolume)}
+              onChange={(volume) => onChange(season, volume)}
+            />
           ))}
         </ul>
       )}
     </section>
+  )
+}
+
+interface SeasonRowProps {
+  season: MediaItem
+  volume: number | undefined
+  onOverride: () => void
+  onChange: (volume: number | null) => void
+}
+
+function SeasonRow({ season, volume, onOverride, onChange }: SeasonRowProps) {
+  const [focus, setFocus] = useState<'stepper' | 'override'>()
+
+  return (
+    <li className="flex min-h-12 items-center gap-2 py-1.5">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">{season.title}</span>
+      {volume === undefined ? (
+        <>
+          <span className="text-sm text-muted">Same as show</span>
+          <Button
+            size="sm"
+            autoFocus={focus === 'override'}
+            aria-label={`Override volume for ${season.title}`}
+            onClick={() => {
+              setFocus('stepper')
+              onOverride()
+            }}
+          >
+            Override
+          </Button>
+        </>
+      ) : (
+        <>
+          <VolumeStepper
+            value={volume}
+            onChange={onChange}
+            label={`Volume for ${season.title}`}
+            autoFocus={focus === 'stepper'}
+          />
+          <button
+            type="button"
+            title="Use the show's volume"
+            aria-label={`Use the show's volume for ${season.title}`}
+            onClick={() => {
+              setFocus('override')
+              onChange(null)
+            }}
+            className="grid size-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
+          >
+            <X className="size-4" />
+          </button>
+        </>
+      )}
+    </li>
   )
 }
