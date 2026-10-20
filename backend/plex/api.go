@@ -25,6 +25,7 @@ type ApiClient struct {
 	GetIdentity           Endpoint[Identity]
 	GetAllLibrarySections Endpoint[LibrarySections]
 	GetLibrarySection     EndpointWithPath[LibrarySection, GetLibrarySectionPathParams]
+	GetLibraryChildren    EndpointWithPath[LibraryChildren, GetLibraryChildrenParams]
 }
 
 type Accessor func(context.Context) (*url.URL, string, error)
@@ -59,6 +60,11 @@ func NewApiClient(client *http.Client, clientId string, plexAccessor Accessor, p
 	c.GetLibrarySection = &pmsPathEndpoint[LibrarySection, GetLibrarySectionPathParams]{
 		c:      c,
 		path:   mustTemplate("get_library_section", "/library/sections/{{ .Id }}/all"),
+		method: "GET",
+	}
+	c.GetLibraryChildren = &pmsPathEndpoint[LibraryChildren, GetLibraryChildrenParams]{
+		c:      c,
+		path:   mustTemplate("get_library_children", "/library/metadata/{{ .RatingKey }}/children"),
 		method: "GET",
 	}
 	return c
@@ -99,6 +105,14 @@ type pmsPathEndpoint[R any, P any] struct {
 type Override struct {
 	Url   string
 	Token string
+}
+
+type StatusError struct {
+	Code int
+}
+
+func (e StatusError) Error() string {
+	return fmt.Sprintf("invalid status code: %s", http.StatusText(e.Code))
 }
 
 func (e *pmsEndpoint[R]) Execute(ctx context.Context, overrides ...Override) (R, error) {
@@ -174,7 +188,7 @@ func (c *ApiClient) execute[R any](ctx context.Context, path, method string, acc
 	}(rsp.Body)
 
 	if rsp.StatusCode < http.StatusOK || rsp.StatusCode >= 300 {
-		return zero, fmt.Errorf("invalid status code: %d", rsp.StatusCode)
+		return zero, &StatusError{Code: rsp.StatusCode}
 	}
 
 	body, err := io.ReadAll(rsp.Body)

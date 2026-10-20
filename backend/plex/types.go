@@ -63,13 +63,24 @@ type GetLibrarySectionPathParams struct {
 	Id string
 }
 
+type LibraryChildren struct {
+	ViewGroup string            `json:"viewGroup"`
+	Metadata  []LibraryMetadata `json:"Metadata"`
+}
+
+type GetLibraryChildrenParams struct {
+	RatingKey string
+}
+
 type LibraryMetadata struct {
-	RatingKey     string `json:"ratingKey"`
-	Type          string `json:"type"`
-	Title         string `json:"title"`
-	Year          int    `json:"year"`
-	ThumbUrl      string `json:"thumb"`
-	ShowRatingKey bool   `json:"showRatingKey"`
+	RatingKey      string `json:"ratingKey"`
+	Type           string `json:"type"`
+	Title          string `json:"title"`
+	Year           int    `json:"year"`
+	ThumbUrl       string `json:"thumb"`
+	ParentTitle    string `json:"parentTitle"`
+	Index          int    `json:"index"`
+	ParentThumbUrl string `json:"parentThumb"`
 }
 
 type jwk struct {

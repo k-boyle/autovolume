@@ -29,7 +29,7 @@ func (l libraryServiceHandler) ListItems(ctx context.Context, req *ListItemsRequ
 			Type:      libraryType,
 			Title:     metadata.Title,
 			Year:      int32(metadata.Year),
-			ThumbUrl:  "/img" + metadata.ThumbUrl,
+			ThumbUrl:  "/api/img" + metadata.ThumbUrl,
 		})
 	}
 

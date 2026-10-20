@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -134,7 +133,6 @@ func main() {
 
 	mux.Handle("/api/", http.StripPrefix("/api", backend(db, plexAuthClient, plexApiClient, sonyClient)))
 	mux.Handle("/", frontend())
-	mux.Handle("/img/", http.StripPrefix("/img", thumbnails(plexApiClient)))
 
 	p := new(http.Protocols)
 	p.SetHTTP1(true)
@@ -154,6 +152,8 @@ func main() {
 
 func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex.ApiClient, sony *sony.Client) http.Handler {
 	api := http.NewServeMux()
+	api.Handle("GET /img/", thumbnails(db, apiClient))
+
 	server := connect.NewServer(NewErrorLogger(), auth.NewValidateSession(db))
 	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, authClient, apiClient))
 	autovolumev1connect.RegisterLibraryServiceHandler(server, library.NewHandler(apiClient))
@@ -162,15 +162,14 @@ func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex
 	autovolumev1connect.RegisterTvServiceHandler(server, tv.NewHandler(db, sony))
 	autovolumev1connect.RegisterVolumeServiceHandler(server, volume.NewHandler(db))
 	connecthttp.Mount(api, server)
+
 	return api
 }
 
 func frontend() http.Handler {
 	dist, err := fs.Sub(web, "web/dist")
 	if err != nil {
-		slog.Error("failed to open embedded web directory", slog.Any("error", err))
-		// :^)
-		log.Fatal()
+		panic(err)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
@@ -193,8 +192,21 @@ func frontend() http.Handler {
 	})
 }
 
-func thumbnails(apiClient *plex.ApiClient) http.Handler {
+func thumbnails(db *database.Database, apiClient *plex.ApiClient) http.Handler {
+	validSession := auth.IsValidSession(db)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie := r.Header.Get("Cookie")
+		valid, err := validSession(r.Context(), cookie)
+		if err != nil {
+			slog.Error("failed to validate session", slog.Any("error", err))
+			http.Error(w, "failed to validate session", http.StatusInternalServerError)
+			return
+		}
+		if !valid {
+			http.Error(w, "invalid session", http.StatusUnauthorized)
+			return
+		}
+
 		thumb := strings.TrimPrefix(r.URL.Path, "/img")
 		if !strings.HasPrefix(thumb, "/library/metadata/") {
 			http.NotFound(w, r)
@@ -203,6 +215,7 @@ func thumbnails(apiClient *plex.ApiClient) http.Handler {
 		q := r.URL.Query()
 		res, err := apiClient.GetThumb(r.Context(), thumb, q.Get("w"), q.Get("h"))
 		if err != nil {
+			slog.Error("failed to get thumbnail", slog.Any("error", err))
 			http.Error(w, "failed to fetch image", http.StatusBadGateway)
 			return
 		}
