@@ -7,6 +7,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"log/slog"
@@ -133,6 +134,7 @@ func main() {
 
 	mux.Handle("/api/", http.StripPrefix("/api", backend(db, plexAuthClient, plexApiClient, sonyClient)))
 	mux.Handle("/", frontend())
+	mux.Handle("/img/", http.StripPrefix("/img", thumbnails(plexApiClient)))
 
 	p := new(http.Protocols)
 	p.SetHTTP1(true)
@@ -191,6 +193,38 @@ func frontend() http.Handler {
 	})
 }
 
+func thumbnails(apiClient *plex.ApiClient) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		thumb := strings.TrimPrefix(r.URL.Path, "/img")
+		if !strings.HasPrefix(thumb, "/library/metadata/") {
+			http.NotFound(w, r)
+			return
+		}
+		q := r.URL.Query()
+		res, err := apiClient.GetThumb(r.Context(), thumb, q.Get("w"), q.Get("h"))
+		if err != nil {
+			http.Error(w, "failed to fetch image", http.StatusBadGateway)
+			return
+		}
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				slog.Error("failed to close response body", slog.Any("error", err))
+			}
+		}(res.Body)
+		if res.StatusCode != http.StatusOK {
+			w.WriteHeader(res.StatusCode)
+			return
+		}
+		w.Header().Set("Content-Type", res.Header.Get("Content-Type"))
+		w.Header().Set("Cache-Control", "private, max-age=2592000")
+		if _, err := io.Copy(w, res.Body); err != nil {
+			http.Error(w, "failed to write image", http.StatusBadGateway)
+			return
+		}
+	})
+}
+
 func isFile(f fs.FS, name string) bool {
 	info, err := fs.Stat(f, name)
 	return err == nil && !info.IsDir()
@@ -234,7 +268,9 @@ func NewErrorLogger() connect.ServerInterceptor {
 	return func(next connect.ServerFunc) connect.ServerFunc {
 		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
 			if err := next(ctx, spec, stream); err != nil {
-				slog.Error("failed to handle request", slog.String("handler", spec.Procedure), slog.Any("error", err))
+				if !errors.Is(err, context.Canceled) {
+					slog.Error("failed to handle request", slog.String("handler", spec.Procedure), slog.Any("error", err))
+				}
 				return err
 			}
 

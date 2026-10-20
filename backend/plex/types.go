@@ -55,6 +55,23 @@ type LibraryDirectory struct {
 	Type  string `json:"type"`
 }
 
+type LibrarySection struct {
+	Metadata []LibraryMetadata `json:"Metadata"`
+}
+
+type GetLibrarySectionPathParams struct {
+	Id string
+}
+
+type LibraryMetadata struct {
+	RatingKey     string `json:"ratingKey"`
+	Type          string `json:"type"`
+	Title         string `json:"title"`
+	Year          int    `json:"year"`
+	ThumbUrl      string `json:"thumb"`
+	ShowRatingKey bool   `json:"showRatingKey"`
+}
+
 type jwk struct {
 	Kty string `json:"kty"`
 	Crv string `json:"crv"`

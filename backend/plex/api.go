@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
+	"text/template"
 )
 
 var AppUrl = mustParse("https://app.plex.tv")
@@ -22,6 +24,7 @@ type ApiClient struct {
 	ListDevices           Endpoint[[]Device]
 	GetIdentity           Endpoint[Identity]
 	GetAllLibrarySections Endpoint[LibrarySections]
+	GetLibrarySection     EndpointWithPath[LibrarySection, GetLibrarySectionPathParams]
 }
 
 type Accessor func(context.Context) (*url.URL, string, error)
@@ -53,11 +56,20 @@ func NewApiClient(client *http.Client, clientId string, plexAccessor Accessor, p
 		path:   "/library/sections/all",
 		method: "GET",
 	}
+	c.GetLibrarySection = &pmsPathEndpoint[LibrarySection, GetLibrarySectionPathParams]{
+		c:      c,
+		path:   mustTemplate("get_library_section", "/library/sections/{{ .Id }}/all"),
+		method: "GET",
+	}
 	return c
 }
 
 type Endpoint[R any] interface {
 	Execute(context.Context, ...Override) (R, error)
+}
+
+type EndpointWithPath[R any, P any] interface {
+	Execute(context.Context, P, ...Override) (R, error)
 }
 
 type plexEndpoint[R any] struct {
@@ -69,7 +81,19 @@ type plexEndpoint[R any] struct {
 }
 
 type pmsEndpoint[R any] struct {
-	plexEndpoint[mediaContainer[R]]
+	c      *ApiClient
+	path   string
+	method string
+
+	zero R
+}
+
+type pmsPathEndpoint[R any, P any] struct {
+	c      *ApiClient
+	path   *template.Template
+	method string
+
+	zero R
 }
 
 type Override struct {
@@ -78,7 +102,7 @@ type Override struct {
 }
 
 func (e *pmsEndpoint[R]) Execute(ctx context.Context, overrides ...Override) (R, error) {
-	r, err := e.plexEndpoint.execute(ctx, e.c.pmsAccessor, overrides...)
+	r, err := e.c.execute[mediaContainer[R]](ctx, e.path, e.method, e.c.pmsAccessor, overrides)
 	if err != nil {
 		var zero R
 		return zero, err
@@ -88,42 +112,59 @@ func (e *pmsEndpoint[R]) Execute(ctx context.Context, overrides ...Override) (R,
 }
 
 func (e *plexEndpoint[R]) Execute(ctx context.Context, overrides ...Override) (R, error) {
-	return e.execute(ctx, e.c.plexAccessor, overrides...)
+	return e.c.execute[R](ctx, e.path, e.method, e.c.plexAccessor, overrides)
 }
 
-func (e *plexEndpoint[R]) execute(ctx context.Context, accessor Accessor, overrides ...Override) (R, error) {
-	u, token, err := accessor(ctx)
-	if err != nil {
-		return e.zero, err
+func (p pmsPathEndpoint[R, P]) Execute(ctx context.Context, pathParams P, overrides ...Override) (R, error) {
+	path := strings.Builder{}
+	if err := p.path.Execute(&path, pathParams); err != nil {
+		var zero R
+		return zero, err
 	}
 
-	u = u.JoinPath(e.path)
+	r, err := p.c.execute[mediaContainer[R]](ctx, path.String(), p.method, p.c.pmsAccessor, overrides)
+	if err != nil {
+		var zero R
+		return zero, err
+	}
+
+	return r.Value, nil
+}
+
+func (c *ApiClient) execute[R any](ctx context.Context, path, method string, accessor Accessor, overrides []Override) (R, error) {
+	var zero R
+	base, token, err := accessor(ctx)
+	if err != nil {
+		return zero, err
+	}
+
+	base = base.JoinPath(path)
 	for _, override := range overrides {
 		if override.Url != "" {
-			u, err = u.Parse(override.Url)
+			base, err = base.Parse(override.Url)
 			if err != nil {
-				return e.zero, err
+				return zero, err
 			}
-			u = u.JoinPath(e.path)
+			base = base.JoinPath(path)
 		}
 		if override.Token != "" {
 			token = override.Token
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, e.method, u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, method, base.String(), nil)
 	if err != nil {
-		return e.zero, err
+		return zero, err
 	}
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-Plex-Client-Identifier", e.c.clientId)
+	req.Header.Add("X-Plex-Client-Identifier", c.clientId)
 	req.Header.Add("X-Plex-Product", "AutoVolume")
 
-	rsp, err := e.c.client.Do(req)
+	rsp, err := c.client.Do(req)
 	if err != nil {
-		return e.zero, err
+		return zero, err
 	}
 	defer func(body io.ReadCloser) {
 		err := body.Close()
@@ -133,18 +174,47 @@ func (e *plexEndpoint[R]) execute(ctx context.Context, accessor Accessor, overri
 	}(rsp.Body)
 
 	if rsp.StatusCode < http.StatusOK || rsp.StatusCode >= 300 {
-		return e.zero, fmt.Errorf("invalid status code: %d", rsp.StatusCode)
+		return zero, fmt.Errorf("invalid status code: %d", rsp.StatusCode)
 	}
 
 	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		return e.zero, err
+		return zero, err
 	}
 
 	var r R
 	if err := json.Unmarshal(body, &r); err != nil {
-		return e.zero, err
+		return zero, err
 	}
 
 	return r, nil
+}
+
+func (c *ApiClient) GetThumb(ctx context.Context, thumb, width, height string) (*http.Response, error) {
+	base, token, err := c.pmsAccessor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	u := base.JoinPath("/photo/:/transcode")
+	u.RawQuery = url.Values{
+		"url":     {thumb},
+		"width":   {width},
+		"height":  {height},
+		"minSize": {"1"},
+		"upscale": {"1"},
+	}.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Plex-Token", token)
+	return c.client.Do(req)
+}
+
+func mustTemplate(name, s string) *template.Template {
+	tmpl, err := template.New(name).Parse(s)
+	if err != nil {
+		panic(err)
+	}
+	return tmpl
 }

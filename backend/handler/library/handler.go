@@ -21,10 +21,6 @@ func NewHandler(plex *plex.ApiClient) service.LibraryServiceHandler {
 	}
 }
 
-func (l libraryServiceHandler) ListItems(ctx context.Context, req *ListItemsRequest) (*ListItemsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
-}
-
 func (l libraryServiceHandler) ListSeasons(ctx context.Context, request *ListSeasonsRequest) (*ListSeasonsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }
