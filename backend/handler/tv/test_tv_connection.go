@@ -9,27 +9,26 @@ import (
 )
 
 func (t tvServiceHandler) TestTvConnection(ctx context.Context, request *TestTvConnectionRequest) (*TestTvConnectionResponse, error) {
-	info, err := t.sony.GetInterfaceInformation.Execute(ctx, nil, sony.Override{
+	override := sony.Override{
 		Url: request.Address,
 		Psk: request.Psk,
-	})
+	}
+
+	info, err := t.sony.GetInterfaceInformation(ctx, override)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to get tv information").WithCause(err)
 	}
 
-	volumes, err := t.sony.GetVolumeInformation.Execute(ctx, &sony.GetVolumeInformationParams{}, sony.Override{
-		Url: request.Address,
-		Psk: request.Psk,
-	})
+	volumes, err := t.sony.GetVolumeInformation(ctx, sony.GetVolumeInformationParams{}, override)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to get tv volume").WithCause(err)
 	}
-	volume := (*volumes)[0]
+	if len(volumes) == 0 {
+		return nil, connect.NewError(connect.CodeInternal, "tv returned no volume information")
+	}
+	volume := volumes[0]
 
-	power, err := t.sony.GetPowerStatus.Execute(ctx, nil, sony.Override{
-		Url: request.Address,
-		Psk: request.Psk,
-	})
+	power, err := t.sony.GetPowerStatus(ctx, override)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to get tv power").WithCause(err)
 	}
@@ -48,7 +47,7 @@ func (t tvServiceHandler) TestTvConnection(ctx context.Context, request *TestTvC
 		State: &TvState{
 			Power:  TvPower(tvPower),
 			Volume: &v,
-			Muted:  volume.Mute == sony.NotMuted,
+			Muted:  volume.Mute == sony.Muted,
 		},
 	}, nil
 }

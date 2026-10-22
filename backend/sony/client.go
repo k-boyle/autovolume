@@ -11,129 +11,129 @@ import (
 )
 
 type Client struct {
-	http        *http.Client
-	urlAccessor func(ctx context.Context) (string, string, error)
+	http     *http.Client
+	accessor Accessor
 
 	GetVolumeInformation    Endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]
-	GetInterfaceInformation Endpoint[any, GetInterfaceInformationResponse]
-	GetPowerStatus          Endpoint[any, GetPowerStatusResponse]
+	GetInterfaceInformation Endpoint0[GetInterfaceInformationResponse]
+	GetPowerStatus          Endpoint0[GetPowerStatusResponse]
 }
 
-func NewClient(http *http.Client, urlAccessor func(ctx context.Context) (string, string, error)) *Client {
-	c := &Client{
-		http:        http,
-		urlAccessor: urlAccessor,
-	}
-	c.GetVolumeInformation = Endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]{
-		c:       c,
-		path:    "/sony/audio",
-		method:  "getVolumeInformation",
-		id:      33,
-		version: "1.1",
-	}
-	c.GetInterfaceInformation = Endpoint[any, GetInterfaceInformationResponse]{
-		c:       c,
-		path:    "/sony/system",
-		method:  "getInterfaceInformation",
-		id:      33,
-		version: "1.0",
-	}
-	c.GetPowerStatus = Endpoint[any, GetPowerStatusResponse]{
-		c:       c,
-		path:    "/sony/system",
-		method:  "getPowerStatus",
-		id:      50,
-		version: "1.1",
-	}
-	return c
-}
+type Accessor func(context.Context) (string, string, error)
 
-type Endpoint[R1 any, R2 any] struct {
-	c       *Client
-	path    string
-	method  string
-	id      int
-	version string
-}
+type Endpoint[PARAMS any, RESPONSE any] func(context.Context, PARAMS, ...Override) (RESPONSE, error)
+type Endpoint0[RESPONSE any] func(context.Context, ...Override) (RESPONSE, error)
 
 type Override struct {
 	Url string
 	Psk *string
 }
 
-func (e Endpoint[R1, R2]) Execute(ctx context.Context, params *R1, overrides ...Override) (*R2, error) {
-	body := requestBody[R1]{
-		Method:  e.method,
-		Id:      e.id,
-		Version: e.version,
-		Params:  []*R1{},
-	}
-	if params != nil {
-		body.Params = append(body.Params, params)
-	}
-	reqBody, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
+type Error struct {
+	Code    int
+	Message string
+}
 
-	url, psk, err := e.c.urlAccessor(ctx)
+func (e *Error) Error() string {
+	return fmt.Sprintf("sony error %d: %s", e.Code, e.Message)
+}
+
+func (e *Error) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &[]any{&e.Code, &e.Message})
+}
+
+func NewClient(http *http.Client, accessor Accessor) *Client {
+	c := &Client{
+		http:     http,
+		accessor: accessor,
+	}
+	c.GetVolumeInformation = c.endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]("audio", "getVolumeInformation", "1.1")
+	c.GetInterfaceInformation = c.endpoint0[GetInterfaceInformationResponse]("system", "getInterfaceInformation", "1.0")
+	c.GetPowerStatus = c.endpoint0[GetPowerStatusResponse]("system", "getPowerStatus", "1.1")
+	return c
+}
+
+func (c *Client) endpoint[PARAMS any, RESPONSE any](service, method, version string) Endpoint[PARAMS, RESPONSE] {
+	return func(ctx context.Context, params PARAMS, overrides ...Override) (RESPONSE, error) {
+		return c.call[RESPONSE](ctx, service, method, version, []any{params}, overrides)
+	}
+}
+
+func (c *Client) endpoint0[RESPONSE any](service, method, version string) Endpoint0[RESPONSE] {
+	return func(ctx context.Context, overrides ...Override) (RESPONSE, error) {
+		return c.call[RESPONSE](ctx, service, method, version, []any{}, overrides)
+	}
+}
+
+type request struct {
+	Method  string `json:"method"`
+	Id      int    `json:"id"`
+	Version string `json:"version"`
+	Params  []any  `json:"params"`
+}
+
+type response struct {
+	Result []json.RawMessage `json:"result"`
+	Error  *Error            `json:"error"`
+}
+
+func (c *Client) call[RESPONSE any](ctx context.Context, service, method, version string, params []any, overrides []Override) (RESPONSE, error) {
+	var zero RESPONSE
+
+	base, psk, err := c.accessor(ctx)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
 	for _, override := range overrides {
-		url = override.Url
+		if override.Url != "" {
+			base = override.Url
+		}
 		if override.Psk != nil {
 			psk = *override.Psk
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url+e.path, bytes.NewBuffer(reqBody))
+	body, err := json.Marshal(request{Method: method, Id: 1, Version: version, Params: params})
 	if err != nil {
-		return nil, err
-	}
-	req.Header.Add("Content-Type", "application/json; charset=utf-8")
-	if len(psk) > 0 {
-		req.Header.Add("X-Auth-PSK", psk)
+		return zero, err
 	}
 
-	rsp, err := e.c.http.Do(req)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/sony/"+service, bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	if psk != "" {
+		req.Header.Set("X-Auth-PSK", psk)
+	}
+
+	rsp, err := c.http.Do(req)
+	if err != nil {
+		return zero, err
+	}
+	defer func(body io.ReadCloser) {
+		if err := body.Close(); err != nil {
 			slog.Error("failed to close response body", slog.Any("error", err))
 		}
 	}(rsp.Body)
 
+	var r response
+	if err := json.NewDecoder(rsp.Body).Decode(&r); err != nil {
+		return zero, err
+	}
+	if r.Error != nil {
+		return zero, r.Error
+	}
 	if rsp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid status code: %d", rsp.StatusCode)
+		return zero, fmt.Errorf("invalid status code: %d", rsp.StatusCode)
+	}
+	if len(r.Result) == 0 {
+		return zero, nil
 	}
 
-	rspBody := new(responseBody[R2])
-	if err := json.NewDecoder(rsp.Body).Decode(rspBody); err != nil {
-		return nil, err
+	var result RESPONSE
+	if err := json.Unmarshal(r.Result[0], &result); err != nil {
+		return zero, err
 	}
-	if len(rspBody.Error) > 0 {
-		return nil, fmt.Errorf("failed to execute request: %s", rspBody.Error)
-	}
-
-	if len(rspBody.Result) == 0 {
-		return nil, fmt.Errorf("not results found")
-	}
-
-	return rspBody.Result[0], nil
-}
-
-type requestBody[P any] struct {
-	Method  string `json:"method"`
-	Id      int    `json:"id"`
-	Version string `json:"version"`
-	Params  []*P   `json:"params"`
-}
-
-type responseBody[P any] struct {
-	Result []*P  `json:"result"`
-	Id     int   `json:"id"`
-	Error  []any `json:"error"`
+	return result, nil
 }

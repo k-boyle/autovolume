@@ -126,7 +126,7 @@ func main() {
 			return "", "", err
 		}
 
-		return settings.TvPsk, settings.TvPsk, nil
+		return settings.TvAddress, settings.TvPsk, nil
 	})
 
 	mux := http.NewServeMux()
