@@ -20,7 +20,7 @@ func (s setupServiceHandler) SelectPlayer(ctx context.Context, request *SelectPl
 		return nil, connect.NewError(connect.CodeNotFound, "settings not found")
 	}
 
-	devices, err := s.plex.ListDevices.Execute(ctx)
+	devices, err := s.plex.ListDevices(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to list devices")
 	}

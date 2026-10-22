@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"reflect"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -20,12 +22,12 @@ type ApiClient struct {
 	plexAccessor Accessor
 	pmsAccessor  Accessor
 
-	GetUsers              Endpoint[Users]
-	ListDevices           Endpoint[[]Device]
-	GetIdentity           Endpoint[Identity]
-	GetAllLibrarySections Endpoint[LibrarySections]
-	GetLibrarySection     EndpointWithPath[LibrarySection, GetLibrarySectionPathParams]
-	GetLibraryChildren    EndpointWithPath[LibraryChildren, GetLibraryChildrenParams]
+	GetUsers              Endpoint0[Users]
+	ListDevices           Endpoint0[[]Device]
+	GetIdentity           Endpoint0[Identity]
+	GetAllLibrarySections Endpoint0[LibrarySections]
+	GetLibrarySection     Endpoint[GetLibrarySectionParams, LibrarySection]
+	GetLibraryChildren    Endpoint[GetLibraryChildrenParams, LibraryChildren]
 }
 
 type Accessor func(context.Context) (*url.URL, string, error)
@@ -37,69 +39,13 @@ func NewApiClient(client *http.Client, clientId string, plexAccessor Accessor, p
 		plexAccessor: plexAccessor,
 		pmsAccessor:  pmsAccessor,
 	}
-	c.GetUsers = &plexEndpoint[Users]{
-		c:      c,
-		path:   "/api/v2/home/users",
-		method: "GET",
-	}
-	c.ListDevices = &plexEndpoint[[]Device]{
-		c:      c,
-		path:   "/api/v2/devices",
-		method: "GET",
-	}
-	c.GetIdentity = &pmsEndpoint[Identity]{
-		c:      c,
-		path:   "/identity",
-		method: "GET",
-	}
-	c.GetAllLibrarySections = &pmsEndpoint[LibrarySections]{
-		c:      c,
-		path:   "/library/sections/all",
-		method: "GET",
-	}
-	c.GetLibrarySection = &pmsPathEndpoint[LibrarySection, GetLibrarySectionPathParams]{
-		c:      c,
-		path:   mustTemplate("get_library_section", "/library/sections/{{ .Id }}/all"),
-		method: "GET",
-	}
-	c.GetLibraryChildren = &pmsPathEndpoint[LibraryChildren, GetLibraryChildrenParams]{
-		c:      c,
-		path:   mustTemplate("get_library_children", "/library/metadata/{{ .RatingKey }}/children"),
-		method: "GET",
-	}
+	c.GetUsers = noParams(c.plexGet[struct{}, Users]("/api/v2/home/users"))
+	c.ListDevices = noParams(c.plexGet[struct{}, []Device]("/api/v2/devices"))
+	c.GetIdentity = noParams(c.pmsGet[struct{}, Identity]("/identity"))
+	c.GetAllLibrarySections = noParams(c.pmsGet[struct{}, LibrarySections]("/library/sections/all"))
+	c.GetLibrarySection = c.pmsGet[GetLibrarySectionParams, LibrarySection]("/library/sections/{{ path .Id }}/all")
+	c.GetLibraryChildren = c.pmsGet[GetLibraryChildrenParams, LibraryChildren]("/library/metadata/{{ path .RatingKey }}/children")
 	return c
-}
-
-type Endpoint[R any] interface {
-	Execute(context.Context, ...Override) (R, error)
-}
-
-type EndpointWithPath[R any, P any] interface {
-	Execute(context.Context, P, ...Override) (R, error)
-}
-
-type plexEndpoint[R any] struct {
-	c      *ApiClient
-	path   string
-	method string
-
-	zero R
-}
-
-type pmsEndpoint[R any] struct {
-	c      *ApiClient
-	path   string
-	method string
-
-	zero R
-}
-
-type pmsPathEndpoint[R any, P any] struct {
-	c      *ApiClient
-	path   *template.Template
-	method string
-
-	zero R
 }
 
 type Override struct {
@@ -115,58 +61,149 @@ func (e StatusError) Error() string {
 	return fmt.Sprintf("invalid status code: %s", http.StatusText(e.Code))
 }
 
-func (e *pmsEndpoint[R]) Execute(ctx context.Context, overrides ...Override) (R, error) {
-	r, err := e.c.execute[mediaContainer[R]](ctx, e.path, e.method, e.c.pmsAccessor, overrides)
-	if err != nil {
-		var zero R
-		return zero, err
+type Endpoint[PARAMS any, RESPONSE any] func(context.Context, PARAMS, ...Override) (RESPONSE, error)
+type Endpoint0[RESPONSE any] func(context.Context, ...Override) (RESPONSE, error)
+
+func (c *ApiClient) endpoint[PARAMS any, RESPONSE any](accessor Accessor, method, pattern string) Endpoint[PARAMS, RESPONSE] {
+	route := createRoute[PARAMS](pattern)
+	return func(ctx context.Context, params PARAMS, overrides ...Override) (RESPONSE, error) {
+		path, query, err := route.build(params)
+		if err != nil {
+			var zero RESPONSE
+			return zero, err
+		}
+		return c.do[RESPONSE](ctx, accessor, method, path, query, overrides)
+	}
+}
+
+func (c *ApiClient) plexGet[PARAMS any, RESPONSE any](pattern string) Endpoint[PARAMS, RESPONSE] {
+	return c.endpoint[PARAMS, RESPONSE](c.plexAccessor, http.MethodGet, pattern)
+}
+
+func (c *ApiClient) pmsGet[PARAMS any, RESPONSE any](pattern string) Endpoint[PARAMS, RESPONSE] {
+	return unwrap(c.endpoint[PARAMS, mediaContainer[RESPONSE]](c.pmsAccessor, http.MethodGet, pattern))
+}
+
+func unwrap[PARAMS any, RESPONSE any](e Endpoint[PARAMS, mediaContainer[RESPONSE]]) Endpoint[PARAMS, RESPONSE] {
+	return func(ctx context.Context, params PARAMS, overrides ...Override) (RESPONSE, error) {
+		r, err := e(ctx, params, overrides...)
+		return r.Value, err
+	}
+}
+
+func noParams[RESPONSE any](e Endpoint[struct{}, RESPONSE]) Endpoint0[RESPONSE] {
+	return func(ctx context.Context, overrides ...Override) (RESPONSE, error) {
+		return e(ctx, struct{}{}, overrides...)
+	}
+}
+
+type queryParameter struct {
+	key       string
+	omitEmpty bool
+	index     []int
+	format    func(reflect.Value) string
+}
+
+type route[PARAMS any] struct {
+	path            *template.Template
+	queryParameters []queryParameter
+}
+
+func createRoute[PARAMS any](pattern string) route[PARAMS] {
+	tmpl := template.Must(template.New(pattern).Funcs(template.FuncMap{"path": url.PathEscape}).Parse(pattern))
+	if err := tmpl.Execute(io.Discard, *new(PARAMS)); err != nil {
+		panic(err)
 	}
 
-	return r.Value, nil
+	var queryParameters []queryParameter
+	for field := range reflect.TypeFor[PARAMS]().Fields() {
+		tag, ok := field.Tag.Lookup("query")
+		if !ok {
+			continue
+		}
+
+		key, options, _ := strings.Cut(tag, ",")
+		if key == "" {
+			panic(fmt.Errorf("%s: empty query tag on %s", pattern, field.Name))
+		}
+
+		queryParameters = append(queryParameters, queryParameter{
+			key:       key,
+			omitEmpty: options == "omitempty",
+			index:     field.Index,
+			format:    formatter(field.Type),
+		})
+	}
+
+	return route[PARAMS]{
+		path:            tmpl,
+		queryParameters: queryParameters,
+	}
 }
 
-func (e *plexEndpoint[R]) Execute(ctx context.Context, overrides ...Override) (R, error) {
-	return e.c.execute[R](ctx, e.path, e.method, e.c.plexAccessor, overrides)
+func formatter(t reflect.Type) func(reflect.Value) string {
+	switch t.Kind() {
+	case reflect.String:
+		return reflect.Value.String
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return func(v reflect.Value) string {
+			return strconv.FormatInt(v.Int(), 10)
+		}
+	case reflect.Bool:
+		return func(v reflect.Value) string {
+			if v.Bool() {
+				return "1"
+			}
+			return "0"
+		}
+	default:
+		panic(fmt.Errorf("unsupported query parameter type: %s", t))
+	}
 }
 
-func (p pmsPathEndpoint[R, P]) Execute(ctx context.Context, pathParams P, overrides ...Override) (R, error) {
+func (r route[PARAMS]) build(params PARAMS) (string, url.Values, error) {
 	path := strings.Builder{}
-	if err := p.path.Execute(&path, pathParams); err != nil {
-		var zero R
-		return zero, err
+	if err := r.path.Execute(&path, params); err != nil {
+		return "", nil, err
 	}
 
-	r, err := p.c.execute[mediaContainer[R]](ctx, path.String(), p.method, p.c.pmsAccessor, overrides)
-	if err != nil {
-		var zero R
-		return zero, err
+	query := url.Values{}
+	v := reflect.ValueOf(params)
+	for _, parameter := range r.queryParameters {
+		field := v.FieldByIndex(parameter.index)
+		if parameter.omitEmpty && field.IsZero() {
+			continue
+		}
+
+		query.Set(parameter.key, parameter.format(field))
 	}
 
-	return r.Value, nil
+	return path.String(), query, nil
 }
 
-func (c *ApiClient) execute[R any](ctx context.Context, path, method string, accessor Accessor, overrides []Override) (R, error) {
-	var zero R
+func (c *ApiClient) do[RESPONSE any](ctx context.Context, accessor Accessor, method, path string, query url.Values, overrides []Override) (RESPONSE, error) {
+	var zero RESPONSE
+
 	base, token, err := accessor(ctx)
 	if err != nil {
 		return zero, err
 	}
 
-	base = base.JoinPath(path)
 	for _, override := range overrides {
 		if override.Url != "" {
-			base, err = base.Parse(override.Url)
+			base, err = url.Parse(override.Url)
 			if err != nil {
 				return zero, err
 			}
-			base = base.JoinPath(path)
 		}
 		if override.Token != "" {
 			token = override.Token
 		}
 	}
+	full := base.JoinPath(path)
+	full.RawQuery = query.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, method, base.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, method, full.String(), nil)
 	if err != nil {
 		return zero, err
 	}
@@ -196,7 +233,7 @@ func (c *ApiClient) execute[R any](ctx context.Context, path, method string, acc
 		return zero, err
 	}
 
-	var r R
+	var r RESPONSE
 	if err := json.Unmarshal(body, &r); err != nil {
 		return zero, err
 	}
@@ -223,12 +260,4 @@ func (c *ApiClient) GetThumb(ctx context.Context, thumb, width, height string) (
 	}
 	req.Header.Set("X-Plex-Token", token)
 	return c.client.Do(req)
-}
-
-func mustTemplate(name, s string) *template.Template {
-	tmpl, err := template.New(name).Parse(s)
-	if err != nil {
-		panic(err)
-	}
-	return tmpl
 }

@@ -19,7 +19,7 @@ func (s setupServiceHandler) SelectServer(ctx context.Context, request *SelectSe
 		return nil, connect.NewError(connect.CodeNotFound, "settings not found")
 	}
 
-	devices, err := s.plex.ListDevices.Execute(ctx)
+	devices, err := s.plex.ListDevices(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to list devices").WithCause(err)
 	}
@@ -38,7 +38,7 @@ func (s setupServiceHandler) SelectServer(ctx context.Context, request *SelectSe
 
 	var connected *plex.Connection
 	for _, connection := range plexDevice.Connections {
-		_, err := s.plex.GetIdentity.Execute(ctx, plex.Override{
+		_, err := s.plex.GetIdentity(ctx, plex.Override{
 			Url: connection.Uri,
 		})
 		if err == nil {

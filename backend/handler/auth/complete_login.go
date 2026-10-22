@@ -58,7 +58,7 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 		return nil, connect.NewError(connect.CodeInternal, "failed to update plex auth").WithCause(err)
 	}
 
-	users, err := a.plexApi.GetUsers.Execute(ctx)
+	users, err := a.plexApi.GetUsers(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to get plex users").WithCause(err)
 	}

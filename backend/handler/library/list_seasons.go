@@ -10,7 +10,11 @@ import (
 )
 
 func (l libraryServiceHandler) ListSeasons(ctx context.Context, request *ListSeasonsRequest) (*ListSeasonsResponse, error) {
-	libraryChildren, err := l.plex.GetLibraryChildren.Execute(ctx, plex.GetLibraryChildrenParams{RatingKey: request.ShowRatingKey})
+	if !isPlexKey(request.ShowRatingKey) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid show rating key")
+	}
+
+	libraryChildren, err := l.plex.GetLibraryChildren(ctx, plex.GetLibraryChildrenParams{RatingKey: request.ShowRatingKey})
 	if err != nil {
 		if se, ok := errors.AsType[*plex.StatusError](err); ok && (se.Code == 400 || se.Code == 404) {
 			return nil, connect.NewError(connect.CodeNotFound, "show not found").WithCause(err)

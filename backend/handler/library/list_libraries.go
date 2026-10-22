@@ -8,7 +8,7 @@ import (
 )
 
 func (l libraryServiceHandler) ListLibraries(ctx context.Context, _ *ListLibrariesRequest) (*ListLibrariesResponse, error) {
-	librarySections, err := l.plex.GetAllLibrarySections.Execute(ctx)
+	librarySections, err := l.plex.GetAllLibrarySections(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to get library items").WithCause(err)
 	}

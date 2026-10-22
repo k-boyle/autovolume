@@ -12,7 +12,7 @@ import (
 )
 
 func (s setupServiceHandler) ListPlayers(ctx context.Context, _ *ListPlayersRequest) (*ListPlayersResponse, error) {
-	devices, err := s.plex.ListDevices.Execute(ctx)
+	devices, err := s.plex.ListDevices(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to list devices")
 	}

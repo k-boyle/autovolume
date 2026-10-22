@@ -9,7 +9,16 @@ import (
 )
 
 func (l libraryServiceHandler) ListItems(ctx context.Context, req *ListItemsRequest) (*ListItemsResponse, error) {
-	section, err := l.plex.GetLibrarySection.Execute(ctx, plex.GetLibrarySectionPathParams{Id: req.LibraryId})
+	if !isPlexKey(req.LibraryId) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid library id")
+	}
+
+	section, err := l.plex.GetLibrarySection(ctx, plex.GetLibrarySectionParams{
+		Id:    req.LibraryId,
+		Title: req.Query,
+		Start: int(req.Offset),
+		Size:  int(req.Limit),
+	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to read library section").WithCause(err)
 	}
@@ -35,6 +44,6 @@ func (l libraryServiceHandler) ListItems(ctx context.Context, req *ListItemsRequ
 
 	return &ListItemsResponse{
 		Items: items,
-		Total: int32(len(section.Metadata)),
+		Total: int32(section.TotalSize),
 	}, nil
 }

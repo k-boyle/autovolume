@@ -56,11 +56,16 @@ type LibraryDirectory struct {
 }
 
 type LibrarySection struct {
-	Metadata []LibraryMetadata `json:"Metadata"`
+	TotalSize int               `json:"totalSize"`
+	Metadata  []LibraryMetadata `json:"Metadata"`
 }
 
-type GetLibrarySectionPathParams struct {
-	Id string
+type GetLibrarySectionParams struct {
+	Id    string
+	Type  int    `query:"type,omitempty"`
+	Title string `query:"title,omitempty"`
+	Start int    `query:"X-Plex-Container-Start"`
+	Size  int    `query:"X-Plex-Container-Size,omitempty"`
 }
 
 type LibraryChildren struct {
