@@ -12,7 +12,7 @@ import (
 func (l libraryServiceHandler) ListSeasons(ctx context.Context, request *ListSeasonsRequest) (*ListSeasonsResponse, error) {
 	libraryChildren, err := l.plex.GetLibraryChildren.Execute(ctx, plex.GetLibraryChildrenParams{RatingKey: request.ShowRatingKey})
 	if err != nil {
-		if se, ok := errors.AsType[plex.StatusError](err); ok && (se.Code == 400 || se.Code == 404) {
+		if se, ok := errors.AsType[*plex.StatusError](err); ok && (se.Code == 400 || se.Code == 404) {
 			return nil, connect.NewError(connect.CodeNotFound, "show not found").WithCause(err)
 		}
 		return nil, connect.NewError(connect.CodeInternal, "failed to get library children").WithCause(err)
