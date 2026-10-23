@@ -1,11 +1,7 @@
 package volume
 
 import (
-	"context"
-
-	"connectrpc.com/connect/v2"
 	"github.com/k-boyle/autovolume/database"
-	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
 	service "github.com/k-boyle/autovolume/gen/autovolume/v1/autovolumev1connect"
 	"github.com/k-boyle/autovolume/plex"
 )
@@ -22,8 +18,4 @@ func NewHandler(db *database.Database, plex *plex.ApiClient) service.VolumeServi
 		db:   db,
 		plex: plex,
 	}
-}
-
-func (v volumeServiceHandler) ClearVolumeRule(ctx context.Context, request *ClearVolumeRuleRequest) (*ClearVolumeRuleResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }
