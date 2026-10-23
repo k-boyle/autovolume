@@ -28,6 +28,7 @@ type ApiClient struct {
 	GetAllLibrarySections Endpoint0[LibrarySections]
 	GetLibrarySection     Endpoint[GetLibrarySectionParams, LibrarySection]
 	GetLibraryChildren    Endpoint[GetLibraryChildrenParams, LibraryChildren]
+	GetLibraryMetadata    Endpoint[GetLibraryMetadataParams, LibraryMetadatas]
 }
 
 type Accessor func(context.Context) (*url.URL, string, error)
@@ -45,6 +46,7 @@ func NewApiClient(client *http.Client, clientId string, plexAccessor Accessor, p
 	c.GetAllLibrarySections = noParams(c.pmsGet[struct{}, LibrarySections]("/library/sections/all"))
 	c.GetLibrarySection = c.pmsGet[GetLibrarySectionParams, LibrarySection]("/library/sections/{{ path .Id }}/all")
 	c.GetLibraryChildren = c.pmsGet[GetLibraryChildrenParams, LibraryChildren]("/library/metadata/{{ path .RatingKey }}/children")
+	c.GetLibraryMetadata = c.pmsGet[GetLibraryMetadataParams, LibraryMetadatas]("/library/metadata/{{ path .RatingKey }}")
 	return c
 }
 

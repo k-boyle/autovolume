@@ -160,7 +160,7 @@ func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex
 	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler())
 	autovolumev1connect.RegisterSetupServiceHandler(server, setup.NewHandler(db, apiClient))
 	autovolumev1connect.RegisterTvServiceHandler(server, tv.NewHandler(db, sony))
-	autovolumev1connect.RegisterVolumeServiceHandler(server, volume.NewHandler(db))
+	autovolumev1connect.RegisterVolumeServiceHandler(server, volume.NewHandler(db, apiClient))
 	connecthttp.Mount(api, server)
 
 	return api

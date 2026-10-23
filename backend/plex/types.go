@@ -68,24 +68,34 @@ type GetLibrarySectionParams struct {
 	Size  int    `query:"X-Plex-Container-Size,omitempty"`
 }
 
+type GetLibraryChildrenParams struct {
+	RatingKey string
+}
+
 type LibraryChildren struct {
 	ViewGroup string            `json:"viewGroup"`
 	Metadata  []LibraryMetadata `json:"Metadata"`
 }
 
-type GetLibraryChildrenParams struct {
+type GetLibraryMetadataParams struct {
 	RatingKey string
 }
 
+// i really hate the plex api
+type LibraryMetadatas struct {
+	Metadata []LibraryMetadata `json:"Metadata"`
+}
+
 type LibraryMetadata struct {
-	RatingKey      string `json:"ratingKey"`
-	Type           string `json:"type"`
-	Title          string `json:"title"`
-	Year           int    `json:"year"`
-	ThumbUrl       string `json:"thumb"`
-	ParentTitle    string `json:"parentTitle"`
-	Index          int    `json:"index"`
-	ParentThumbUrl string `json:"parentThumb"`
+	RatingKey       string `json:"ratingKey"`
+	Type            string `json:"type"`
+	Title           string `json:"title"`
+	Year            int    `json:"year"`
+	ThumbUrl        string `json:"thumb"`
+	ParentTitle     string `json:"parentTitle"`
+	Index           int    `json:"index"`
+	ParentThumbUrl  string `json:"parentThumb"`
+	ParentRatingKey string `json:"parentRatingKey"`
 }
 
 type jwk struct {
