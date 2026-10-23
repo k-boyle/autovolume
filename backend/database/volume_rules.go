@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -23,4 +25,20 @@ func (db *Database) ListVolumeRules(ctx context.Context) ([]*VolumeRule, error) 
 		return nil, err
 	}
 	return rules, nil
+}
+
+func (db *Database) InsertVolumeRule(ctx context.Context, rule *VolumeRule) error {
+	_, err := db.db.NewInsert().Model(rule).On("CONFLICT (server_id,rating_key) DO UPDATE").Exec(ctx)
+	return err
+}
+
+func (db *Database) ReadVolumeRule(ctx context.Context, serverId string, ratingKey string) (*VolumeRule, error) {
+	rule := new(VolumeRule)
+	if err := db.db.NewSelect().Model(rule).Where("server_id = ? AND rating_key = ?", serverId, ratingKey).Scan(ctx); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return rule, nil
 }

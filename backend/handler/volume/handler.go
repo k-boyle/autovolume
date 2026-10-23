@@ -24,10 +24,6 @@ func NewHandler(db *database.Database, plex *plex.ApiClient) service.VolumeServi
 	}
 }
 
-func (v volumeServiceHandler) SetVolumeRule(ctx context.Context, request *SetVolumeRuleRequest) (*SetVolumeRuleResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
-}
-
 func (v volumeServiceHandler) ClearVolumeRule(ctx context.Context, request *ClearVolumeRuleRequest) (*ClearVolumeRuleResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "not implemented")
 }

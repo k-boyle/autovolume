@@ -14,6 +14,14 @@ func (l libraryServiceHandler) ListSeasons(ctx context.Context, request *ListSea
 		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid show rating key")
 	}
 
+	settings, err := l.db.ReadSettings(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, "failed to read settings").WithCause(err)
+	}
+	if settings == nil {
+		return nil, connect.NewError(connect.CodeInternal, "settings not found")
+	}
+
 	libraryChildren, err := l.plex.GetLibraryChildren(ctx, plex.GetLibraryChildrenParams{RatingKey: request.ShowRatingKey})
 	if err != nil {
 		if se, ok := errors.AsType[*plex.StatusError](err); ok && (se.Code == 400 || se.Code == 404) {
@@ -32,8 +40,12 @@ func (l libraryServiceHandler) ListSeasons(ctx context.Context, request *ListSea
 			thumbUrl = child.ParentThumbUrl
 		}
 
-		// todo season volume
-		seasons = append(seasons, &MediaItem{
+		volume, err := l.db.ReadVolumeRule(ctx, settings.ServerId, child.RatingKey)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, "failed to read volume rule").WithCause(err)
+		}
+
+		season := &MediaItem{
 			RatingKey:     child.RatingKey,
 			Type:          MediaType_MEDIA_TYPE_SEASON,
 			Title:         child.Title,
@@ -41,7 +53,14 @@ func (l libraryServiceHandler) ListSeasons(ctx context.Context, request *ListSea
 			ShowRatingKey: request.ShowRatingKey,
 			ShowTitle:     child.ParentTitle,
 			SeasonNumber:  int32(child.Index),
-		})
+		}
+
+		if volume != nil {
+			v := int32(volume.Volume)
+			season.Volume = &v
+		}
+
+		seasons = append(seasons, season)
 	}
 
 	return &ListSeasonsResponse{
