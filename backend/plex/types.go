@@ -87,15 +87,19 @@ type LibraryMetadatas struct {
 }
 
 type LibraryMetadata struct {
-	RatingKey       string `json:"ratingKey"`
-	Type            string `json:"type"`
-	Title           string `json:"title"`
-	Year            int    `json:"year"`
-	ThumbUrl        string `json:"thumb"`
-	ParentTitle     string `json:"parentTitle"`
-	Index           int    `json:"index"`
-	ParentThumbUrl  string `json:"parentThumb"`
-	ParentRatingKey string `json:"parentRatingKey"`
+	RatingKey            string `json:"ratingKey"`
+	Type                 string `json:"type"`
+	Title                string `json:"title"`
+	Year                 int    `json:"year"`
+	ThumbUrl             string `json:"thumb"`
+	ParentTitle          string `json:"parentTitle"`
+	Index                int    `json:"index"`
+	ParentThumbUrl       string `json:"parentThumb"`
+	ParentRatingKey      string `json:"parentRatingKey"`
+	ParentIndex          int    `json:"parentIndex"`
+	GrandparentRatingKey string `json:"grandparentRatingKey"`
+	GrandparentTitle     string `json:"grandparentTitle"`
+	GrandparentThumbUrl  string `json:"grandparentThumb"`
 }
 
 type jwk struct {
@@ -121,4 +125,19 @@ type mediaContainer[T any] struct {
 
 type ExchangedAuthToken struct {
 	AuthToken string `json:"auth_token"`
+}
+
+type websocketMessage struct {
+	NotificationContainer notificationContainer `json:"NotificationContainer"`
+}
+
+type notificationContainer struct {
+	Type                         string                          `json:"type"`
+	PlaySessionStateNotification []*PlaySessionStateNotification `json:"PlaySessionStateNotification"`
+}
+
+type PlaySessionStateNotification struct {
+	ClientIdentifier string `json:"clientIdentifier"`
+	RatingKey        string `json:"ratingKey"`
+	State            string `json:"state"`
 }

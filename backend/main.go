@@ -157,7 +157,7 @@ func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex
 	server := connect.NewServer(NewErrorLogger(), auth.NewValidateSession(db))
 	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, authClient, apiClient))
 	autovolumev1connect.RegisterLibraryServiceHandler(server, library.NewHandler(db, apiClient))
-	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler())
+	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler(db, apiClient, sony))
 	autovolumev1connect.RegisterSetupServiceHandler(server, setup.NewHandler(db, apiClient))
 	autovolumev1connect.RegisterTvServiceHandler(server, tv.NewHandler(db, sony))
 	autovolumev1connect.RegisterVolumeServiceHandler(server, volume.NewHandler(db, apiClient))

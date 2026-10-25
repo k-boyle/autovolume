@@ -42,6 +42,9 @@ func NewValidateSession(db *database.Database) connect.ServerInterceptor {
 
 func IsValidSession(db *database.Database) func(context.Context, string) (bool, error) {
 	return func(ctx context.Context, cookies string) (bool, error) {
+		if cookies == "" {
+			return false, nil
+		}
 		c, err := http.ParseCookie(cookies)
 		if err != nil {
 			return false, err

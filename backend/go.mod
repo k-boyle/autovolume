@@ -10,6 +10,7 @@ tool (
 require (
 	connectrpc.com/connect/v2 v2.0.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/gorilla/websocket v1.5.3
 	github.com/spf13/viper v1.21.0
 	github.com/uptrace/bun v1.3.0
 	github.com/uptrace/bun/dialect/pgdialect v1.3.0
