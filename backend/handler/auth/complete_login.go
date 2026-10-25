@@ -94,7 +94,7 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   int(30 * 24 * time.Hour),
+		MaxAge:   30 * 24 * 60 * 60,
 	}
 	info, _ := connect.CallInfoForServerContext(ctx)
 	info.ResponseHeader().Set("Set-Cookie", cookie.String())
