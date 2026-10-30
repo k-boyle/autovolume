@@ -22,7 +22,7 @@ type ApiClient struct {
 	plexAccessor Accessor
 	pmsAccessor  Accessor
 
-	GetUsers              Endpoint0[Users]
+	GetUser               Endpoint0[User]
 	ListDevices           Endpoint0[[]Device]
 	GetIdentity           Endpoint0[Identity]
 	GetAllLibrarySections Endpoint0[LibrarySections]
@@ -40,7 +40,7 @@ func NewApiClient(client *http.Client, clientId string, plexAccessor Accessor, p
 		plexAccessor: plexAccessor,
 		pmsAccessor:  pmsAccessor,
 	}
-	c.GetUsers = noParams(c.plexGet[struct{}, Users]("/api/v2/home/users"))
+	c.GetUser = noParams(c.plexGet[struct{}, User]("/api/v2/user"))
 	c.ListDevices = noParams(c.plexGet[struct{}, []Device]("/api/v2/devices"))
 	c.GetIdentity = noParams(c.pmsGet[struct{}, Identity]("/identity"))
 	c.GetAllLibrarySections = noParams(c.pmsGet[struct{}, LibrarySections]("/library/sections/all"))

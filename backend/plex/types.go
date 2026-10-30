@@ -13,11 +13,6 @@ type Pin struct {
 	AuthToken *string `json:"authToken,omitempty"`
 }
 
-type Users struct {
-	Subscription bool   `json:"subscription"`
-	Users        []User `json:"users"`
-}
-
 type User struct {
 	Username  string `json:"username"`
 	AvatarUrl string `json:"thumb"`

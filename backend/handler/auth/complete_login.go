@@ -58,16 +58,10 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 		return nil, connect.NewError(connect.CodeInternal, "failed to update plex auth").WithCause(err)
 	}
 
-	users, err := a.plexApi.GetUsers(ctx)
+	user, err := a.plexApi.GetUser(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to get plex users").WithCause(err)
 	}
-
-	if len(users.Users) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, "no plex users found")
-	}
-
-	user := users.Users[0]
 
 	session := &database.Session{
 		Id:        rand.Text(),
