@@ -12,7 +12,12 @@ import (
 )
 
 func (a authServiceHandler) StartLogin(ctx context.Context, _ *StartLoginRequest) (*StartLoginResponse, error) {
-	pin, err := a.plexAuth.CreatePin(ctx)
+	credentials, err := plex.NewCredentials()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, "failed to create plex credentials").WithCause(err)
+	}
+
+	pin, err := a.plexAuth.CreatePin(ctx, credentials)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnknown, "failed to create pin").WithCause(err)
 	}
@@ -21,6 +26,9 @@ func (a authServiceHandler) StartLogin(ctx context.Context, _ *StartLoginRequest
 		Id:        rand.Text(),
 		Code:      pin.Code,
 		PinId:     pin.Id,
+		ClientId:  credentials.ClientId,
+		KeyId:     credentials.KeyId,
+		KeySeed:   credentials.Key.Seed(),
 		CreatedAt: pin.CreatedAt,
 		ExpiresAt: pin.ExpiresAt,
 	}
@@ -29,8 +37,7 @@ func (a authServiceHandler) StartLogin(ctx context.Context, _ *StartLoginRequest
 	}
 
 	authUrl := fmt.Sprintf(
-		"%s/auth#?clientID=%s&code=%s&context%%5Bdevice%%5D%%5Bproduct%%5D=AutoVolume",
-		plex.AppUrl,
+		"https://app.plex.tv/auth#?clientID=%s&code=%s&context%%5Bdevice%%5D%%5Bproduct%%5D=AutoVolume",
 		pin.ClientIdentifier,
 		pin.Code,
 	)

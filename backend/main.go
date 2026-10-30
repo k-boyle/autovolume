@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/ed25519"
-	"crypto/rand"
 	"embed"
 	"errors"
 	"fmt"
@@ -81,34 +79,32 @@ func main() {
 	}
 	slog.Info("Migrations run")
 
-	settings, err := getSettings(ctx, db)
-	if err != nil {
+	if err := ensureSettings(ctx, db); err != nil {
 		slog.Error("failed to get settings", slog.Any("error", err))
 		return
 	}
-	pub, prv := getKeys(settings)
-	plexAuthClient := plex.NewAuthClient(http.DefaultClient, settings.PlexClientId, pub, prv)
+	plexAuthClient := plex.NewAuthClient(http.DefaultClient)
 
-	plexApiClient := plex.NewApiClient(http.DefaultClient, settings.PlexClientId,
-		func(ctx context.Context) (*url.URL, string, error) {
+	plexApiClient := plex.NewApiClient(http.DefaultClient,
+		func(ctx context.Context) (*url.URL, string, string, error) {
 			settings, err := db.ReadSettings(ctx)
 			if err != nil {
-				return nil, "", err
+				return nil, "", "", err
 			}
 
-			return plex.AppUrl, settings.PlexToken, nil
+			return plex.Url, settings.PlexToken, settings.PlexClientId, nil
 		},
-		func(ctx context.Context) (*url.URL, string, error) {
+		func(ctx context.Context) (*url.URL, string, string, error) {
 			settings, err := db.ReadSettings(ctx)
 			if err != nil {
-				return nil, "", err
+				return nil, "", "", err
 			}
 			u, err := url.Parse(settings.ServerUrl)
 			if err != nil {
-				return nil, "", err
+				return nil, "", "", err
 			}
 
-			return u, settings.ServerToken, nil
+			return u, settings.ServerToken, settings.PlexClientId, nil
 		},
 	)
 
@@ -243,38 +239,16 @@ func isFile(f fs.FS, name string) bool {
 	return err == nil && !info.IsDir()
 }
 
-func getSettings(ctx context.Context, db *database.Database) (*database.Settings, error) {
+func ensureSettings(ctx context.Context, db *database.Database) error {
 	settings, err := db.ReadSettings(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if settings == nil {
-		settings, err = db.CreateSettings(ctx)
-		if err != nil {
-			return nil, err
-		}
+		_, err = db.CreateSettings(ctx)
 	}
 
-	if len(settings.PlexKeySeed) == 0 {
-		_, prv, err := ed25519.GenerateKey(rand.Reader)
-		if err != nil {
-			return nil, err
-		}
-
-		settings.PlexKeySeed = prv.Seed()
-		if err := db.UpdatePlexKeySeed(ctx, settings); err != nil {
-			return nil, err
-		}
-
-		return settings, nil
-	}
-
-	return settings, nil
-}
-
-func getKeys(settings *database.Settings) (ed25519.PublicKey, ed25519.PrivateKey) {
-	prv := ed25519.NewKeyFromSeed(settings.PlexKeySeed)
-	return prv.Public().(ed25519.PublicKey), prv
+	return err
 }
 
 func NewErrorLogger() connect.ServerInterceptor {

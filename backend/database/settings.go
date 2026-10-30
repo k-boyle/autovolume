@@ -22,6 +22,7 @@ type Settings struct {
 	TvAddress          string    `bun:"tv_address,nullzero"`
 	TvPsk              string    `bun:"tv_psk,nullzero"`
 	DefaultVolume      int       `bun:"default_volume"`
+	PlexKeyId          string    `bun:"plex_key_id,nullzero"`
 	PlexKeySeed        []byte    `bun:"plex_key_seed"`
 	PlexToken          string    `bun:"plex_token"`
 	PlexTokenExpiresAt time.Time `bun:"plex_token_expires_at"`
@@ -52,13 +53,13 @@ func (db *Database) CreateSettings(ctx context.Context) (*Settings, error) {
 	return settings, nil
 }
 
-func (db *Database) UpdatePlexKeySeed(ctx context.Context, settings *Settings) error {
-	_, err := db.db.NewUpdate().Model(settings).Column("plex_key_seed").Where("id = ?", settings.Id).Exec(ctx)
+func (db *Database) UpdatePlexCredentials(ctx context.Context, settings *Settings) error {
+	_, err := db.db.NewUpdate().Model(settings).Column("plex_client_id", "plex_key_id", "plex_key_seed", "plex_token", "plex_token_expires_at").Where("id = ?", settings.Id).Exec(ctx)
 	return err
 }
 
 func (db *Database) UpdatePlexAuth(ctx context.Context, settings *Settings) error {
-	_, err := db.db.NewUpdate().Model(settings).Column("plex_token", "plex_token_expires_at").Where("id = ?", settings.Id).Exec(ctx)
+	_, err := db.db.NewUpdate().Model(settings).Column("plex_token", "plex_token_expires_at").Where("id = ?", settings.Id).Where("plex_client_id = ?", settings.PlexClientId).Exec(ctx)
 	return err
 }
 

@@ -14,11 +14,10 @@ import (
 	"text/template"
 )
 
-var AppUrl = mustParse("https://app.plex.tv")
+var Url = mustParse("https://clients.plex.tv")
 
 type ApiClient struct {
 	client       *http.Client
-	clientId     string
 	plexAccessor Accessor
 	pmsAccessor  Accessor
 
@@ -31,12 +30,11 @@ type ApiClient struct {
 	GetLibraryMetadata    Endpoint[GetLibraryMetadataParams, LibraryMetadatas]
 }
 
-type Accessor func(context.Context) (*url.URL, string, error)
+type Accessor func(ctx context.Context) (*url.URL, string, string, error)
 
-func NewApiClient(client *http.Client, clientId string, plexAccessor Accessor, pmsAccessor Accessor) *ApiClient {
+func NewApiClient(client *http.Client, plexAccessor Accessor, pmsAccessor Accessor) *ApiClient {
 	c := &ApiClient{
 		client:       client,
-		clientId:     clientId,
 		plexAccessor: plexAccessor,
 		pmsAccessor:  pmsAccessor,
 	}
@@ -186,7 +184,7 @@ func (r route[PARAMS]) build(params PARAMS) (string, url.Values, error) {
 func (c *ApiClient) do[RESPONSE any](ctx context.Context, accessor Accessor, method, path string, query url.Values, overrides []Override) (RESPONSE, error) {
 	var zero RESPONSE
 
-	base, token, err := accessor(ctx)
+	base, token, clientId, err := accessor(ctx)
 	if err != nil {
 		return zero, err
 	}
@@ -212,7 +210,7 @@ func (c *ApiClient) do[RESPONSE any](ctx context.Context, accessor Accessor, met
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-Plex-Client-Identifier", c.clientId)
+	req.Header.Add("X-Plex-Client-Identifier", clientId)
 	req.Header.Add("X-Plex-Product", "AutoVolume")
 
 	rsp, err := c.client.Do(req)
@@ -244,7 +242,7 @@ func (c *ApiClient) do[RESPONSE any](ctx context.Context, accessor Accessor, met
 }
 
 func (c *ApiClient) GetThumb(ctx context.Context, thumb, width, height string) (*http.Response, error) {
-	base, token, err := c.pmsAccessor(ctx)
+	base, token, _, err := c.pmsAccessor(ctx)
 	if err != nil {
 		return nil, err
 	}

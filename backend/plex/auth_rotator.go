@@ -61,17 +61,22 @@ func (r *Rotator) rotate(ctx context.Context) error {
 		return nil
 	}
 
-	nonce, err := r.plex.GetNonce(ctx)
+	credentials, err := CredentialsFromSeed(settings.PlexClientId, settings.PlexKeyId, settings.PlexKeySeed)
 	if err != nil {
 		return err
 	}
 
-	exchangedToken, err := r.plex.ExchangePlexToken(ctx, nonce)
+	nonce, err := r.plex.GetNonce(ctx, credentials)
 	if err != nil {
 		return err
 	}
 
-	expiresAt, err := tokenExpiry(exchangedToken.AuthToken)
+	exchangedToken, err := r.plex.ExchangePlexToken(ctx, credentials, nonce)
+	if err != nil {
+		return err
+	}
+
+	expiresAt, err := TokenExpiry(exchangedToken.AuthToken)
 	if err != nil {
 		return err
 	}
@@ -86,7 +91,7 @@ func (r *Rotator) rotate(ctx context.Context) error {
 	return nil
 }
 
-func tokenExpiry(token string) (time.Time, error) {
+func TokenExpiry(token string) (time.Time, error) {
 	claims := jwt.MapClaims{}
 	if _, _, err := new(jwt.Parser).ParseUnverified(token, claims); err != nil {
 		return time.Time{}, err

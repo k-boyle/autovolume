@@ -12,9 +12,12 @@ import (
 type PendingLogin struct {
 	bun.BaseModel `bun:"table:pending_logins"`
 
-	Id    string `bun:"id,pk,nullzero,notnull"`
-	Code  string `bun:"code,nullzero,notnull"`
-	PinId int    `bun:"pin_id,nullzero,notnull"`
+	Id       string `bun:"id,pk,nullzero,notnull"`
+	Code     string `bun:"code,nullzero,notnull"`
+	PinId    int    `bun:"pin_id,nullzero,notnull"`
+	ClientId string `bun:"client_id,nullzero,notnull"`
+	KeyId    string `bun:"key_id,nullzero,notnull"`
+	KeySeed  []byte `bun:"key_seed,notnull"`
 
 	CreatedAt time.Time `bun:"created_at,nullzero,notnull"`
 	ExpiresAt time.Time `bun:"expires_at,nullzero,notnull"`

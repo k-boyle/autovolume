@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/k-boyle/autovolume/database"
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
+	"github.com/k-boyle/autovolume/plex"
 )
 
 func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLoginRequest) (*CompleteLoginResponse, error) {
@@ -29,7 +30,12 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 		return nil, connect.NewError(connect.CodeUnauthenticated, "pending login has expired")
 	}
 
-	pin, err := a.plexAuth.ExchangePin(ctx, login.PinId)
+	credentials, err := plex.CredentialsFromSeed(login.ClientId, login.KeyId, login.KeySeed)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, "failed to read plex credentials").WithCause(err)
+	}
+
+	pin, err := a.plexAuth.ExchangePin(ctx, credentials, login.PinId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to exchange auth pin").WithCause(err)
 	}
@@ -43,6 +49,16 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 		}
 	}()
 
+	expiresAt, err := plex.TokenExpiry(*pin.AuthToken)
+	if err != nil {
+		go func() {
+			if err := a.plexAuth.SignOut(context.Background(), credentials.ClientId, *pin.AuthToken); err != nil {
+				slog.Error("failed to sign out non-jwt plex device", slog.Any("error", err))
+			}
+		}()
+		return nil, connect.NewError(connect.CodeInternal, "plex did not return a jwt").WithCause(err)
+	}
+
 	settings, err := a.db.ReadSettings(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to read settings").WithCause(err)
@@ -51,11 +67,23 @@ func (a authServiceHandler) CompleteLogin(ctx context.Context, req *CompleteLogi
 		return nil, connect.NewError(connect.CodeNotFound, "settings not found")
 	}
 
+	previousClientId, previousToken := settings.PlexClientId, settings.PlexToken
+	settings.PlexClientId = credentials.ClientId
+	settings.PlexKeyId = credentials.KeyId
+	settings.PlexKeySeed = login.KeySeed
 	settings.PlexToken = *pin.AuthToken
-	settings.PlexTokenExpiresAt = pin.ExpiresAt
+	settings.PlexTokenExpiresAt = expiresAt
 
-	if err := a.db.UpdatePlexAuth(ctx, settings); err != nil {
+	if err := a.db.UpdatePlexCredentials(ctx, settings); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, "failed to update plex auth").WithCause(err)
+	}
+
+	if previousToken != "" {
+		go func() {
+			if err := a.plexAuth.SignOut(context.Background(), previousClientId, previousToken); err != nil {
+				slog.Error("failed to sign out previous plex device", slog.Any("error", err))
+			}
+		}()
 	}
 
 	user, err := a.plexApi.GetUser(ctx)
