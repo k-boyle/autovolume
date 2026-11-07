@@ -20,7 +20,7 @@ type AutoVolume struct {
 	done         chan struct{}
 }
 
-func NewAutoVolume(ctx context.Context, sony *sony.Client, api *plex.ApiClient, websocket *plex.Websocket, db *database.Database) (*AutoVolume, error) {
+func newAutoVolume(ctx context.Context, sony *sony.Client, api *plex.ApiClient, websocket *plex.Websocket, db *database.Database) (*AutoVolume, error) {
 	sub, err := websocket.Subscribe()
 	if err != nil {
 		return nil, err

@@ -27,6 +27,7 @@ import (
 	"github.com/k-boyle/autovolume/handler/setup"
 	"github.com/k-boyle/autovolume/handler/tv"
 	"github.com/k-boyle/autovolume/handler/volume"
+	"github.com/k-boyle/autovolume/logging"
 	"github.com/k-boyle/autovolume/plex"
 	"github.com/k-boyle/autovolume/sony"
 	"github.com/spf13/viper"
@@ -39,21 +40,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	textHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		AddSource: true,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Value.Kind() == slog.KindAny {
-				if err, ok := a.Value.Any().(error); ok {
-					a.Value = fmtErr(err)
-				} else if a.Key == "source" {
-					return logSource(a.Value.Any().(*slog.Source))
-				}
-			}
-
-			return a
-		},
-	})
-	slog.SetDefault(slog.New(textHandler))
+	slog.SetDefault(slog.New(logging.NewTextHandler()))
 
 	v := viper.New()
 	config, err := LoadConfig(v)
@@ -155,7 +142,7 @@ func main() {
 		return settings.TvAddress, settings.TvPsk, nil
 	})
 
-	av, err := NewAutoVolume(ctx, sonyClient, plexApiClient, plexWebsocket, db)
+	av, err := newAutoVolume(ctx, sonyClient, plexApiClient, plexWebsocket, db)
 	if err != nil {
 		panic(err)
 	}
@@ -201,7 +188,7 @@ func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex
 	api := http.NewServeMux()
 	api.Handle("GET /img/", thumbnails(db, apiClient))
 
-	server := connect.NewServer(newErrorLogger(), auth.NewValidateSession(db))
+	server := connect.NewServer(logging.NewErrorLogger(), auth.NewValidateSession(db))
 	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, authClient, apiClient))
 	autovolumev1connect.RegisterLibraryServiceHandler(server, library.NewHandler(db, apiClient))
 	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler(db, apiClient, websocket, sony))
@@ -300,38 +287,4 @@ func ensureSettings(ctx context.Context, db *database.Database) (*database.Setti
 	}
 
 	return settings, err
-}
-
-func newErrorLogger() connect.ServerInterceptor {
-	return func(next connect.ServerFunc) connect.ServerFunc {
-		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
-			if err := next(ctx, spec, stream); err != nil {
-				if !errors.Is(err, context.Canceled) {
-					slog.Error("failed to handle request", slog.String("handler", spec.Procedure), slog.Any("error", err))
-				}
-				return err
-			}
-
-			return nil
-		}
-	}
-}
-
-func fmtErr(err error) slog.Value {
-	msg := []string{err.Error()}
-	if cErr, ok := errors.AsType[*connect.Error](err); ok {
-		if cErr.Unwrap() != nil {
-			msg = append(msg, cErr.Unwrap().Error())
-		}
-	}
-
-	return slog.StringValue(strings.Join(msg, ": "))
-}
-
-func logSource(source *slog.Source) slog.Attr {
-	_, after, _ := strings.Cut(source.File, "backend")
-	file := slog.String("file", after)
-	method := slog.String("method", source.Function)
-	line := slog.Int("line", source.Line)
-	return slog.GroupAttrs("source", file, method, line)
 }
