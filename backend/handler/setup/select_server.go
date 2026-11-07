@@ -103,7 +103,7 @@ func (s setupServiceHandler) SelectServer(ctx context.Context, request *SelectSe
 			Server:        server,
 			Player:        player,
 			PlexConnected: true,
-			TvConfigured:  settings.TvAddress != "" && settings.TvPsk != "",
+			TvConfigured:  settings.TvAddress != "",
 		},
 	}, nil
 }

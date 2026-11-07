@@ -88,7 +88,7 @@ func (s setupServiceHandler) SelectPlayer(ctx context.Context, request *SelectPl
 				LastSeen: timestamppb.New(player.LastSeen),
 			},
 			PlexConnected: settings.ServerUrl != "" && settings.PlexTokenExpiresAt.After(time.Now()),
-			TvConfigured:  settings.TvAddress != "" && settings.TvPsk != "",
+			TvConfigured:  settings.TvAddress != "",
 		},
 	}, nil
 }
