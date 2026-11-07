@@ -20,92 +20,19 @@ func (n nowPlayingServiceHandler) WatchNowPlaying(ctx context.Context, _ *WatchN
 	}
 	defer n.websocket.Unsubscribe(sub)
 
+	var initial *plex.PlaySessionStateNotification
+	select {
+	case initial = <-sub.Read():
+	default:
+	}
+
+	if err := n.sendSnapshot(ctx, stream, initial); err != nil {
+		return err
+	}
+
 	for notification := range sub.Read() {
-		settings, err := n.db.ReadSettings(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, "failed to read settings").WithCause(err)
-		}
-		if settings == nil {
-			return connect.NewError(connect.CodeInternal, "no settings found")
-		}
-
-		playbackState := PlaybackState_PLAYBACK_STATE_UNSPECIFIED
-		switch notification.State {
-		case "paused":
-			playbackState = PlaybackState_PLAYBACK_STATE_PAUSED
-		case "playing":
-			playbackState = PlaybackState_PLAYBACK_STATE_PLAYING
-		}
-		slogs := []slog.Attr{slog.String("state", notification.State)}
-
-		metadatas, err := n.client.GetLibraryMetadata(ctx, plex.GetLibraryMetadataParams{RatingKey: notification.RatingKey})
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, "failed to get library metadata").WithCause(err)
-		}
-		if len(metadatas.Metadata) == 0 {
-			return connect.NewError(connect.CodeInternal, "no metadata found").WithCause(err)
-		}
-		if len(metadatas.Metadata) > 1 {
-			return connect.NewError(connect.CodeInternal, "multiple metadata found").WithCause(err)
-		}
-
-		metadata := metadatas.Metadata[0]
-		var playback *Playback
-		if playbackState != PlaybackState_PLAYBACK_STATE_UNSPECIFIED {
-			switch metadata.Type {
-			case "episode":
-				playback, err = n.playbackForShow(ctx, settings, metadata)
-				if err != nil {
-					return connect.NewError(connect.CodeInternal, "failed to watch playback").WithCause(err)
-				}
-				slogs = append(slogs, slog.String("show", playback.Item.Title), slog.Int("season", int(playback.Season.SeasonNumber)), slog.Int("episode", int(playback.Episode.EpisodeNumber)))
-			case "movie":
-				playback, err = n.playbackForMovie(ctx, settings, metadata)
-				if err != nil {
-					return connect.NewError(connect.CodeInternal, "failed to watch playback").WithCause(err)
-				}
-				slogs = append(slogs, slog.String("film", playback.Item.Title))
-			default:
-				return connect.NewError(connect.CodeInternal, fmt.Sprintf("unknown playback type %s", metadata.Type)).WithCause(err)
-			}
-			playback.State = playbackState
-		}
-
-		powerStatus, err := n.sony.GetPowerStatus(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, "failed to get power status").WithCause(err)
-		}
-		var tvPower TvPower
-		switch powerStatus.Status {
-		case sony.Standby:
-			tvPower = TvPower_TV_POWER_STANDBY
-		case sony.Active:
-			tvPower = TvPower_TV_POWER_ACTIVE
-		}
-
-		volumes, err := n.sony.GetVolumeInformation(ctx, sony.GetVolumeInformationParams{})
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, "failed to get tv volume").WithCause(err)
-		}
-		if len(volumes) == 0 {
-			return connect.NewError(connect.CodeInternal, "tv returned no volume information")
-		}
-		volume := int32(volumes[0].Volume)
-
-		defaultVolume := int32(settings.DefaultVolume)
-		response := &WatchNowPlayingResponse{
-			Playback: playback,
-			Tv: &TvState{
-				Power:  tvPower,
-				Volume: &volume,
-				Muted:  volumes[0].Mute == sony.Muted,
-			},
-			DefaultVolume: &defaultVolume,
-		}
-		slog.Info("Plex stream in progress", slog.Any("playback", slogs))
-
-		if err := stream.Send(response); err != nil {
-			return connect.NewError(connect.CodeInternal, "failed to send response").WithCause(err)
+		if err := n.sendSnapshot(ctx, stream, notification); err != nil {
+			return err
 		}
 	}
 
@@ -114,6 +41,100 @@ func (n nowPlayingServiceHandler) WatchNowPlaying(ctx context.Context, _ *WatchN
 	}
 
 	return connect.NewError(connect.CodeUnavailable, "lost connection to Plex")
+}
+
+func (n nowPlayingServiceHandler) sendSnapshot(ctx context.Context, stream autovolumev1connect.NowPlayingServiceWatchNowPlayingServerStream, notification *plex.PlaySessionStateNotification) error {
+	settings, err := n.db.ReadSettings(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, "failed to read settings").WithCause(err)
+	}
+	if settings == nil {
+		return connect.NewError(connect.CodeInternal, "no settings found")
+	}
+
+	playbackState := PlaybackState_PLAYBACK_STATE_UNSPECIFIED
+	var slogs []slog.Attr
+	if notification != nil {
+		switch notification.State {
+		case "paused":
+			playbackState = PlaybackState_PLAYBACK_STATE_PAUSED
+		case "playing":
+			playbackState = PlaybackState_PLAYBACK_STATE_PLAYING
+		}
+		slogs = append(slogs, slog.String("state", notification.State))
+	}
+
+	var playback *Playback
+	if playbackState != PlaybackState_PLAYBACK_STATE_UNSPECIFIED {
+		metadatas, err := n.client.GetLibraryMetadata(ctx, plex.GetLibraryMetadataParams{RatingKey: notification.RatingKey})
+		if err != nil {
+			return connect.NewError(connect.CodeInternal, "failed to get library metadata").WithCause(err)
+		}
+		if len(metadatas.Metadata) == 0 {
+			return connect.NewError(connect.CodeInternal, "no metadata found")
+		}
+		if len(metadatas.Metadata) > 1 {
+			return connect.NewError(connect.CodeInternal, "multiple metadata found")
+		}
+
+		metadata := metadatas.Metadata[0]
+		switch metadata.Type {
+		case "episode":
+			playback, err = n.playbackForShow(ctx, settings, metadata)
+			if err != nil {
+				return connect.NewError(connect.CodeInternal, "failed to watch playback").WithCause(err)
+			}
+			slogs = append(slogs, slog.String("show", playback.Item.Title), slog.Int("season", int(playback.Season.SeasonNumber)), slog.Int("episode", int(playback.Episode.EpisodeNumber)))
+		case "movie":
+			playback, err = n.playbackForMovie(ctx, settings, metadata)
+			if err != nil {
+				return connect.NewError(connect.CodeInternal, "failed to watch playback").WithCause(err)
+			}
+			slogs = append(slogs, slog.String("film", playback.Item.Title))
+		default:
+			return connect.NewError(connect.CodeInternal, fmt.Sprintf("unknown playback type %s", metadata.Type))
+		}
+		playback.State = playbackState
+	}
+
+	powerStatus, err := n.sony.GetPowerStatus(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, "failed to get power status").WithCause(err)
+	}
+	tv := &TvState{}
+	switch powerStatus.Status {
+	case sony.Standby:
+		tv.Power = TvPower_TV_POWER_STANDBY
+	case sony.Active:
+		tv.Power = TvPower_TV_POWER_ACTIVE
+	}
+
+	if tv.Power == TvPower_TV_POWER_ACTIVE {
+		volumes, err := n.sony.GetVolumeInformation(ctx, sony.GetVolumeInformationParams{})
+		if err != nil {
+			return connect.NewError(connect.CodeInternal, "failed to get tv volume").WithCause(err)
+		}
+		if len(volumes) == 0 {
+			return connect.NewError(connect.CodeInternal, "tv returned no volume information")
+		}
+		volume := int32(volumes[0].Volume)
+		tv.Volume = &volume
+		tv.Muted = volumes[0].Mute == sony.Muted
+	}
+
+	defaultVolume := int32(settings.DefaultVolume)
+	response := &WatchNowPlayingResponse{
+		Playback:      playback,
+		Tv:            tv,
+		DefaultVolume: &defaultVolume,
+	}
+	slog.Info("Plex stream in progress", slog.Any("playback", slogs))
+
+	if err := stream.Send(response); err != nil {
+		return connect.NewError(connect.CodeInternal, "failed to send response").WithCause(err)
+	}
+
+	return nil
 }
 
 func (n nowPlayingServiceHandler) playbackForMovie(ctx context.Context, settings *database.Settings, metadata plex.LibraryMetadata) (*Playback, error) {
