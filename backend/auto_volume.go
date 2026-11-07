@@ -122,7 +122,7 @@ func (av *AutoVolume) run(ctx context.Context) {
 
 		_, err = av.sony.SetAudioVolume(ctx, sony.SetVolumeInformationParams{
 			Volume: strconv.Itoa(volume),
-			Target: "",
+			Output: "",
 		})
 		if err != nil {
 			last = notification

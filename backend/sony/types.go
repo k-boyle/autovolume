@@ -32,7 +32,7 @@ type GetPowerStatusResponse struct {
 
 type SetVolumeInformationParams struct {
 	Volume string `json:"volume"`
-	Target string `json:"target"`
+	Output string `json:"output"`
 }
 
 type SetVolumeInformationResponse int

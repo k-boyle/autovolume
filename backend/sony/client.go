@@ -48,7 +48,7 @@ func NewClient(http *http.Client) *Client {
 	c.GetVolumeInformation = c.endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]("audio", "getVolumeInformation", "1.1")
 	c.GetInterfaceInformation = c.endpoint0[GetInterfaceInformationResponse]("system", "getInterfaceInformation", "1.0")
 	c.GetPowerStatus = c.endpoint0[GetPowerStatusResponse]("system", "getPowerStatus", "1.1")
-	c.SetAudioVolume = c.endpoint[SetVolumeInformationParams, SetVolumeInformationResponse]("audio", "setAudioVolume", "1.0")
+	c.SetAudioVolume = c.endpoint[SetVolumeInformationParams, SetVolumeInformationResponse]("audio", "setAudioVolume", "1.1")
 	return c
 }
 
