@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/url"
+	"time"
 
 	"connectrpc.com/connect/v2"
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
@@ -39,9 +40,11 @@ func (s setupServiceHandler) SelectServer(ctx context.Context, request *SelectSe
 
 	var connected *plex.Connection
 	for _, connection := range plexDevice.Connections {
-		_, err := s.plex.GetIdentity(ctx, plex.Override{
+		identityCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		_, err := s.plex.GetIdentity(identityCtx, plex.Override{
 			Url: connection.Uri,
 		})
+		cancel()
 		if err == nil {
 			connected = connection
 			break
