@@ -161,7 +161,18 @@ func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex
 	api := http.NewServeMux()
 	api.Handle("GET /img/", thumbnails(db, apiClient))
 
-	server := connect.NewServer(logging.NewErrorLogger(), auth.NewValidateSession(db))
+	recovery := func(next connect.ServerFunc) connect.ServerFunc {
+		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) (err error) {
+			defer func() {
+				if err := recover(); err != nil {
+					err = connect.Errorf(connect.CodeInternal, "internal server error")
+				}
+			}()
+			return next(ctx, spec, stream)
+		}
+	}
+
+	server := connect.NewServer(logging.NewErrorLogger(), recovery, auth.NewValidateSession(db))
 	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, authClient, apiClient))
 	autovolumev1connect.RegisterLibraryServiceHandler(server, library.NewHandler(db, apiClient))
 	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler(db, apiClient, websocket, sony))
