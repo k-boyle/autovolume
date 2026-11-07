@@ -17,9 +17,8 @@ import (
 var Url = mustParse("https://clients.plex.tv")
 
 type ApiClient struct {
-	client       *http.Client
-	plexAccessor Accessor
-	pmsAccessor  Accessor
+	plexTv *http.Client
+	pms    *http.Client
 
 	GetUser               Endpoint0[User]
 	ListDevices           Endpoint0[[]Device]
@@ -30,13 +29,10 @@ type ApiClient struct {
 	GetLibraryMetadata    Endpoint[GetLibraryMetadataParams, LibraryMetadatas]
 }
 
-type Accessor func(ctx context.Context) (*url.URL, string, string, error)
-
-func NewApiClient(client *http.Client, plexAccessor Accessor, pmsAccessor Accessor) *ApiClient {
+func NewApiClient(plexTv *http.Client, pms *http.Client) *ApiClient {
 	c := &ApiClient{
-		client:       client,
-		plexAccessor: plexAccessor,
-		pmsAccessor:  pmsAccessor,
+		plexTv: plexTv,
+		pms:    pms,
 	}
 	c.GetUser = noParams(c.plexGet[struct{}, User]("/api/v2/user"))
 	c.ListDevices = noParams(c.plexGet[struct{}, []Device]("/api/v2/devices"))
@@ -64,7 +60,7 @@ func (e StatusError) Error() string {
 type Endpoint[PARAMS any, RESPONSE any] func(context.Context, PARAMS, ...Override) (RESPONSE, error)
 type Endpoint0[RESPONSE any] func(context.Context, ...Override) (RESPONSE, error)
 
-func (c *ApiClient) endpoint[PARAMS any, RESPONSE any](accessor Accessor, method, pattern string) Endpoint[PARAMS, RESPONSE] {
+func (c *ApiClient) endpoint[PARAMS any, RESPONSE any](client *http.Client, method, pattern string) Endpoint[PARAMS, RESPONSE] {
 	route := createRoute[PARAMS](pattern)
 	return func(ctx context.Context, params PARAMS, overrides ...Override) (RESPONSE, error) {
 		path, query, err := route.build(params)
@@ -72,16 +68,16 @@ func (c *ApiClient) endpoint[PARAMS any, RESPONSE any](accessor Accessor, method
 			var zero RESPONSE
 			return zero, err
 		}
-		return c.do[RESPONSE](ctx, accessor, method, path, query, overrides)
+		return c.do[RESPONSE](ctx, client, method, path, query, overrides)
 	}
 }
 
 func (c *ApiClient) plexGet[PARAMS any, RESPONSE any](pattern string) Endpoint[PARAMS, RESPONSE] {
-	return c.endpoint[PARAMS, RESPONSE](c.plexAccessor, http.MethodGet, pattern)
+	return c.endpoint[PARAMS, RESPONSE](c.plexTv, http.MethodGet, pattern)
 }
 
 func (c *ApiClient) pmsGet[PARAMS any, RESPONSE any](pattern string) Endpoint[PARAMS, RESPONSE] {
-	return unwrap(c.endpoint[PARAMS, mediaContainer[RESPONSE]](c.pmsAccessor, http.MethodGet, pattern))
+	return unwrap(c.endpoint[PARAMS, mediaContainer[RESPONSE]](c.pms, http.MethodGet, pattern))
 }
 
 func unwrap[PARAMS any, RESPONSE any](e Endpoint[PARAMS, mediaContainer[RESPONSE]]) Endpoint[PARAMS, RESPONSE] {
@@ -181,39 +177,41 @@ func (r route[PARAMS]) build(params PARAMS) (string, url.Values, error) {
 	return path.String(), query, nil
 }
 
-func (c *ApiClient) do[RESPONSE any](ctx context.Context, accessor Accessor, method, path string, query url.Values, overrides []Override) (RESPONSE, error) {
+func (c *ApiClient) do[RESPONSE any](ctx context.Context, client *http.Client, method, path string, query url.Values, overrides []Override) (RESPONSE, error) {
 	var zero RESPONSE
 
-	base, token, clientId, err := accessor(ctx)
+	full, err := url.Parse(path)
 	if err != nil {
 		return zero, err
 	}
 
+	var token string
 	for _, override := range overrides {
 		if override.Url != "" {
-			base, err = url.Parse(override.Url)
+			base, err := url.Parse(override.Url)
 			if err != nil {
 				return zero, err
 			}
+			full = base.JoinPath(path)
 		}
 		if override.Token != "" {
 			token = override.Token
 		}
 	}
-	full := base.JoinPath(path)
 	full.RawQuery = query.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, method, full.String(), nil)
 	if err != nil {
 		return zero, err
 	}
-	req.Header.Set("X-Plex-Token", token)
+	if token != "" {
+		req.Header.Set("X-Plex-Token", token)
+	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-Plex-Client-Identifier", clientId)
 	req.Header.Add("X-Plex-Product", "AutoVolume")
 
-	rsp, err := c.client.Do(req)
+	rsp, err := client.Do(req)
 	if err != nil {
 		return zero, err
 	}
@@ -242,11 +240,7 @@ func (c *ApiClient) do[RESPONSE any](ctx context.Context, accessor Accessor, met
 }
 
 func (c *ApiClient) GetThumb(ctx context.Context, thumb, width, height string) (*http.Response, error) {
-	base, token, _, err := c.pmsAccessor(ctx)
-	if err != nil {
-		return nil, err
-	}
-	u := base.JoinPath("/photo/:/transcode")
+	u := &url.URL{Path: "/photo/:/transcode"}
 	u.RawQuery = url.Values{
 		"url":     {thumb},
 		"width":   {width},
@@ -258,6 +252,5 @@ func (c *ApiClient) GetThumb(ctx context.Context, thumb, width, height string) (
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-Plex-Token", token)
-	return c.client.Do(req)
+	return c.pms.Do(req)
 }

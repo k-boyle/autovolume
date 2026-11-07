@@ -8,19 +8,17 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 )
 
 type Client struct {
-	http     *http.Client
-	accessor Accessor
+	http *http.Client
 
 	GetVolumeInformation    Endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]
 	GetInterfaceInformation Endpoint0[GetInterfaceInformationResponse]
 	GetPowerStatus          Endpoint0[GetPowerStatusResponse]
 	SetAudioVolume          Endpoint[SetVolumeInformationParams, SetVolumeInformationResponse]
 }
-
-type Accessor func(context.Context) (string, string, error)
 
 type Endpoint[PARAMS any, RESPONSE any] func(context.Context, PARAMS, ...Override) (RESPONSE, error)
 type Endpoint0[RESPONSE any] func(context.Context, ...Override) (RESPONSE, error)
@@ -43,10 +41,9 @@ func (e *Error) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &[]any{&e.Code, &e.Message})
 }
 
-func NewClient(http *http.Client, accessor Accessor) *Client {
+func NewClient(http *http.Client) *Client {
 	c := &Client{
-		http:     http,
-		accessor: accessor,
+		http: http,
 	}
 	c.GetVolumeInformation = c.endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]("audio", "getVolumeInformation", "1.1")
 	c.GetInterfaceInformation = c.endpoint0[GetInterfaceInformationResponse]("system", "getInterfaceInformation", "1.0")
@@ -82,13 +79,15 @@ type response struct {
 func (c *Client) call[RESPONSE any](ctx context.Context, service, method, version string, params []any, overrides []Override) (RESPONSE, error) {
 	var zero RESPONSE
 
-	base, psk, err := c.accessor(ctx)
-	if err != nil {
-		return zero, err
-	}
+	endpoint := &url.URL{Path: "/sony/" + service}
+	var psk string
 	for _, override := range overrides {
 		if override.Url != "" {
-			base = override.Url
+			base, err := url.Parse(override.Url)
+			if err != nil {
+				return zero, err
+			}
+			endpoint = base.JoinPath("/sony", service)
 		}
 		if override.Psk != nil {
 			psk = *override.Psk
@@ -100,7 +99,7 @@ func (c *Client) call[RESPONSE any](ctx context.Context, service, method, versio
 		return zero, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/sony/"+service, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), bytes.NewReader(body))
 	if err != nil {
 		return zero, err
 	}

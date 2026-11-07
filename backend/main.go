@@ -27,6 +27,7 @@ import (
 	"github.com/k-boyle/autovolume/handler/setup"
 	"github.com/k-boyle/autovolume/handler/tv"
 	"github.com/k-boyle/autovolume/handler/volume"
+	"github.com/k-boyle/autovolume/httpx"
 	"github.com/k-boyle/autovolume/logging"
 	"github.com/k-boyle/autovolume/plex"
 	"github.com/k-boyle/autovolume/sony"
@@ -75,28 +76,7 @@ func main() {
 	}
 	plexAuthClient := plex.NewAuthClient(http.DefaultClient)
 
-	plexApiClient := plex.NewApiClient(http.DefaultClient,
-		func(ctx context.Context) (*url.URL, string, string, error) {
-			settings, err := db.ReadSettings(ctx)
-			if err != nil {
-				return nil, "", "", err
-			}
-
-			return plex.Url, settings.PlexToken, settings.PlexClientId, nil
-		},
-		func(ctx context.Context) (*url.URL, string, string, error) {
-			settings, err := db.ReadSettings(ctx)
-			if err != nil {
-				return nil, "", "", err
-			}
-			u, err := url.Parse(settings.ServerUrl)
-			if err != nil {
-				return nil, "", "", err
-			}
-
-			return u, settings.ServerToken, settings.PlexClientId, nil
-		},
-	)
+	plexApiClient := plex.NewApiClient(httpx.NewClient(plexTvTarget(db)), httpx.NewClient(pmsTarget(db)))
 
 	rotator := plex.NewRotator(plexAuthClient, db)
 	go func() {
@@ -133,14 +113,7 @@ func main() {
 		}
 	}
 
-	sonyClient := sony.NewClient(http.DefaultClient, func(ctx context.Context) (string, string, error) {
-		settings, err := db.ReadSettings(ctx)
-		if err != nil {
-			return "", "", err
-		}
-
-		return settings.TvAddress, settings.TvPsk, nil
-	})
+	sonyClient := sony.NewClient(httpx.NewClient(tvTarget(db)))
 
 	av, err := newAutoVolume(ctx, sonyClient, plexApiClient, plexWebsocket, db)
 	if err != nil {
