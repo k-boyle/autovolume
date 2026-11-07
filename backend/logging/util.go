@@ -30,14 +30,22 @@ func NewTextHandler() *slog.TextHandler {
 func NewErrorLogger() connect.ServerInterceptor {
 	return func(next connect.ServerFunc) connect.ServerFunc {
 		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
-			if err := next(ctx, spec, stream); err != nil {
-				if !errors.Is(err, context.Canceled) {
-					slog.Error("failed to handle request", slog.String("handler", spec.Procedure), slog.Any("error", err))
-				}
-				return err
+			err := next(ctx, spec, stream)
+			if err == nil || ctx.Err() != nil {
+				return nil
 			}
 
-			return nil
+			code := connect.CodeOf(err)
+			level := slog.LevelError
+			switch code {
+			case connect.CodeCanceled, connect.CodeInvalidArgument, connect.CodeNotFound,
+				connect.CodeAlreadyExists, connect.CodePermissionDenied,
+				connect.CodeUnauthenticated, connect.CodeFailedPrecondition:
+				level = slog.LevelDebug
+			}
+
+			slog.Log(ctx, level, "failed to handle request", slog.String("handler", spec.Procedure), slog.String("code", code.String()), slog.Any("error", err))
+			return err
 		}
 	}
 }
