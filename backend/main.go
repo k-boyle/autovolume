@@ -78,7 +78,7 @@ func main() {
 
 	plexApiClient := plex.NewApiClient(httpx.NewClient(plexTvTarget(db)), httpx.NewClient(pmsTarget(db)))
 
-	rotator := plex.NewRotator(plexAuthClient, db)
+	rotator := newRotator(plexAuthClient, db)
 	go func() {
 		err := rotator.Start(ctx)
 		if err != nil {
