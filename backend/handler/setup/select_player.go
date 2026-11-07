@@ -2,6 +2,7 @@ package setup
 
 import (
 	"context"
+	"net/url"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -35,6 +36,20 @@ func (s setupServiceHandler) SelectPlayer(ctx context.Context, request *SelectPl
 	}
 	if plexPlayer == nil {
 		return nil, connect.NewError(connect.CodeNotFound, "device not found")
+	}
+
+	url, err := url.Parse(settings.ServerUrl)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "failed to parse server url").WithCause(err)
+	}
+
+	details := &plex.WebsocketDetails{
+		Url:      url,
+		Token:    settings.ServerToken,
+		ClientId: plexPlayer.Id,
+	}
+	if err := s.websocket.ServerChanged(details); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "failed to connect to server websocket")
 	}
 
 	player := &database.Player{

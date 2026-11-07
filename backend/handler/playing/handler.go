@@ -10,15 +10,17 @@ import (
 var _ service.NowPlayingServiceHandler = nowPlayingServiceHandler{}
 
 type nowPlayingServiceHandler struct {
-	db     *database.Database
-	client *plex.ApiClient
-	sony   *sony.Client
+	db        *database.Database
+	client    *plex.ApiClient
+	websocket *plex.Websocket
+	sony      *sony.Client
 }
 
-func NewHandler(db *database.Database, client *plex.ApiClient, sony *sony.Client) service.NowPlayingServiceHandler {
+func NewHandler(db *database.Database, client *plex.ApiClient, websocket *plex.Websocket, sony *sony.Client) service.NowPlayingServiceHandler {
 	return nowPlayingServiceHandler{
-		db:     db,
-		client: client,
-		sony:   sony,
+		db:        db,
+		client:    client,
+		websocket: websocket,
+		sony:      sony,
 	}
 }

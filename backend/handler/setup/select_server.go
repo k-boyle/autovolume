@@ -3,6 +3,7 @@ package setup
 import (
 	"context"
 	"log/slog"
+	"net/url"
 
 	"connectrpc.com/connect/v2"
 	. "github.com/k-boyle/autovolume/gen/autovolume/v1"
@@ -50,6 +51,20 @@ func (s setupServiceHandler) SelectServer(ctx context.Context, request *SelectSe
 	}
 	if connected == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, "failed to connect to server")
+	}
+
+	url, err := url.Parse(connected.Uri)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "failed to parse server url").WithCause(err)
+	}
+
+	details := &plex.WebsocketDetails{
+		Url:      url,
+		Token:    plexDevice.AccessToken,
+		ClientId: settings.PlayerId,
+	}
+	if err := s.websocket.ServerChanged(details); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "failed to connect to server websocket")
 	}
 
 	settings.ServerId = request.ServerId

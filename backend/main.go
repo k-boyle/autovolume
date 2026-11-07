@@ -79,7 +79,8 @@ func main() {
 	}
 	slog.Info("Migrations run")
 
-	if err := ensureSettings(ctx, db); err != nil {
+	settings, err := ensureSettings(ctx, db)
+	if err != nil {
 		slog.Error("failed to get settings", slog.Any("error", err))
 		return
 	}
@@ -116,6 +117,33 @@ func main() {
 		}
 	}()
 
+	plexWebsocket := plex.NewWebsocket(ctx)
+	defer func(websocket *plex.Websocket) {
+		err := websocket.Close()
+		if err != nil {
+			slog.Error("failed to close websocket", slog.Any("error", err))
+		}
+	}(plexWebsocket)
+
+	if settings.ServerUrl != "" && settings.ServerToken != "" && settings.PlexClientId != "" {
+		url, err := url.Parse(settings.ServerUrl)
+		if err != nil {
+			slog.Error("failed to parse url", slog.Any("error", err))
+		}
+		if err == nil {
+			details := &plex.WebsocketDetails{
+				Url:      url,
+				Token:    settings.ServerToken,
+				ClientId: settings.PlayerId,
+			}
+			if err := plexWebsocket.ServerChanged(details); err != nil {
+				slog.Error("failed to update server details", slog.Any("error", err))
+			} else {
+				slog.Info("websocket connected", slog.Any("server", url))
+			}
+		}
+	}
+
 	sonyClient := sony.NewClient(http.DefaultClient, func(ctx context.Context) (string, string, error) {
 		settings, err := db.ReadSettings(ctx)
 		if err != nil {
@@ -127,7 +155,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/api/", http.StripPrefix("/api", backend(db, plexAuthClient, plexApiClient, sonyClient)))
+	mux.Handle("/api/", http.StripPrefix("/api", backend(db, plexAuthClient, plexApiClient, plexWebsocket, sonyClient)))
 	mux.Handle("/", frontend())
 
 	p := new(http.Protocols)
@@ -146,15 +174,15 @@ func main() {
 	}
 }
 
-func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex.ApiClient, sony *sony.Client) http.Handler {
+func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex.ApiClient, websocket *plex.Websocket, sony *sony.Client) http.Handler {
 	api := http.NewServeMux()
 	api.Handle("GET /img/", thumbnails(db, apiClient))
 
-	server := connect.NewServer(NewErrorLogger(), auth.NewValidateSession(db))
+	server := connect.NewServer(newErrorLogger(), auth.NewValidateSession(db))
 	autovolumev1connect.RegisterAuthServiceHandler(server, auth.NewHandler(db, authClient, apiClient))
 	autovolumev1connect.RegisterLibraryServiceHandler(server, library.NewHandler(db, apiClient))
-	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler(db, apiClient, sony))
-	autovolumev1connect.RegisterSetupServiceHandler(server, setup.NewHandler(db, apiClient))
+	autovolumev1connect.RegisterNowPlayingServiceHandler(server, playing.NewHandler(db, apiClient, websocket, sony))
+	autovolumev1connect.RegisterSetupServiceHandler(server, setup.NewHandler(db, apiClient, websocket))
 	autovolumev1connect.RegisterTvServiceHandler(server, tv.NewHandler(db, sony))
 	autovolumev1connect.RegisterVolumeServiceHandler(server, volume.NewHandler(db, apiClient))
 	connecthttp.Mount(api, server)
@@ -239,19 +267,19 @@ func isFile(f fs.FS, name string) bool {
 	return err == nil && !info.IsDir()
 }
 
-func ensureSettings(ctx context.Context, db *database.Database) error {
+func ensureSettings(ctx context.Context, db *database.Database) (*database.Settings, error) {
 	settings, err := db.ReadSettings(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if settings == nil {
-		_, err = db.CreateSettings(ctx)
+		settings, err = db.CreateSettings(ctx)
 	}
 
-	return err
+	return settings, err
 }
 
-func NewErrorLogger() connect.ServerInterceptor {
+func newErrorLogger() connect.ServerInterceptor {
 	return func(next connect.ServerFunc) connect.ServerFunc {
 		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
 			if err := next(ctx, spec, stream); err != nil {

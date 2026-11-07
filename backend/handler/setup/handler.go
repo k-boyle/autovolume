@@ -9,13 +9,15 @@ import (
 var _ service.SetupServiceHandler = setupServiceHandler{}
 
 type setupServiceHandler struct {
-	db   *database.Database
-	plex *plex.ApiClient
+	db        *database.Database
+	plex      *plex.ApiClient
+	websocket *plex.Websocket
 }
 
-func NewHandler(db *database.Database, plex *plex.ApiClient) service.SetupServiceHandler {
+func NewHandler(db *database.Database, plex *plex.ApiClient, websocket *plex.Websocket) service.SetupServiceHandler {
 	return setupServiceHandler{
-		db:   db,
-		plex: plex,
+		db:        db,
+		plex:      plex,
+		websocket: websocket,
 	}
 }

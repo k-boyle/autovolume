@@ -14,18 +14,13 @@ import (
 )
 
 func (n nowPlayingServiceHandler) WatchNowPlaying(ctx context.Context, _ *WatchNowPlayingRequest, stream autovolumev1connect.NowPlayingServiceWatchNowPlayingServerStream) error {
-	websocket, err := n.createWebSocket(ctx)
+	sub, err := n.websocket.Subscribe()
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, "failed to create web socket").WithCause(err)
+		return connect.NewError(connect.CodeInternal, "failed to subscribe to websocket").WithCause(err)
 	}
-	defer func(websocket *plex.WebSocket) {
-		err := websocket.Close()
-		if err != nil {
-			slog.Error("failed to close websocket", slog.Any("error", err))
-		}
-	}(websocket)
+	defer n.websocket.Unsubscribe(sub)
 
-	for notification := range websocket.Read() {
+	for notification := range sub.Read() {
 		settings, err := n.db.ReadSettings(ctx)
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, "failed to read settings").WithCause(err)
@@ -119,22 +114,6 @@ func (n nowPlayingServiceHandler) WatchNowPlaying(ctx context.Context, _ *WatchN
 	}
 
 	return connect.NewError(connect.CodeUnavailable, "lost connection to Plex")
-}
-
-func (n nowPlayingServiceHandler) createWebSocket(ctx context.Context) (*plex.WebSocket, error) {
-	settings, err := n.db.ReadSettings(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, "failed to read settings").WithCause(err)
-	}
-	if settings == nil {
-		return nil, connect.NewError(connect.CodeInternal, "no settings found")
-	}
-
-	websocket, err := plex.Connect(ctx, settings.ServerUrl, settings.ServerToken, settings.PlayerId)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, "failed to create websocket")
-	}
-	return websocket, nil
 }
 
 func (n nowPlayingServiceHandler) playbackForMovie(ctx context.Context, settings *database.Settings, metadata plex.LibraryMetadata) (*Playback, error) {
