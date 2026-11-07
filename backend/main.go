@@ -153,6 +153,12 @@ func main() {
 		return settings.TvAddress, settings.TvPsk, nil
 	})
 
+	av, err := NewAutoVolume(ctx, sonyClient, plexApiClient, plexWebsocket, db)
+	if err != nil {
+		panic(err)
+	}
+	defer av.Close()
+
 	mux := http.NewServeMux()
 
 	mux.Handle("/api/", http.StripPrefix("/api", backend(db, plexAuthClient, plexApiClient, plexWebsocket, sonyClient)))

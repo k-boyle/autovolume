@@ -17,6 +17,7 @@ type Client struct {
 	GetVolumeInformation    Endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]
 	GetInterfaceInformation Endpoint0[GetInterfaceInformationResponse]
 	GetPowerStatus          Endpoint0[GetPowerStatusResponse]
+	SetAudioVolume          Endpoint[SetVolumeInformationParams, SetVolumeInformationResponse]
 }
 
 type Accessor func(context.Context) (string, string, error)
@@ -50,6 +51,7 @@ func NewClient(http *http.Client, accessor Accessor) *Client {
 	c.GetVolumeInformation = c.endpoint[GetVolumeInformationParams, []GetVolumeInformationResponse]("audio", "getVolumeInformation", "1.1")
 	c.GetInterfaceInformation = c.endpoint0[GetInterfaceInformationResponse]("system", "getInterfaceInformation", "1.0")
 	c.GetPowerStatus = c.endpoint0[GetPowerStatusResponse]("system", "getPowerStatus", "1.1")
+	c.SetAudioVolume = c.endpoint[SetVolumeInformationParams, SetVolumeInformationResponse]("audio", "setAudioVolume", "1.0")
 	return c
 }
 

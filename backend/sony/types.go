@@ -29,3 +29,10 @@ type GetInterfaceInformationResponse struct {
 type GetPowerStatusResponse struct {
 	Status PowerStatus `json:"status"`
 }
+
+type SetVolumeInformationParams struct {
+	Volume string `json:"volume"`
+	Target string `json:"target"`
+}
+
+type SetVolumeInformationResponse int
