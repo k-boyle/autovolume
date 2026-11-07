@@ -14,6 +14,8 @@ import (
 	"os/signal"
 	"path"
 	"strings"
+	"syscall"
+	"time"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
@@ -34,7 +36,7 @@ import (
 var web embed.FS
 
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	textHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
@@ -174,10 +176,25 @@ func main() {
 		Protocols: p,
 	}
 
+	shutdownDone := make(chan struct{})
+	go func() {
+		defer close(shutdownDone)
+
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			slog.Error("failed to shutdown server", slog.Any("error", err))
+		}
+	}()
+
 	slog.Info(fmt.Sprintf("Listening on %s", srv.Addr))
-	if err := srv.ListenAndServe(); err != nil {
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("failed to start server", slog.Any("error", err))
+		return
 	}
+	<-shutdownDone
 }
 
 func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex.ApiClient, websocket *plex.Websocket, sony *sony.Client) http.Handler {

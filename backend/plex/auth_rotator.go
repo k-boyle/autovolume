@@ -39,7 +39,7 @@ func (r *Rotator) Start(ctx context.Context) error {
 			}
 		case <-ctx.Done():
 			ticker.Stop()
-			return ctx.Err()
+			return nil
 		}
 	}
 }
