@@ -34,7 +34,6 @@ type Websocket struct {
 type Subscription struct {
 	id string
 	ch chan *PlaySessionStateNotification
-	ws *Websocket
 }
 
 type changeRequest struct {
@@ -271,7 +270,6 @@ func (ws *Websocket) Subscribe() (*Subscription, error) {
 	subscription := &Subscription{
 		id: rand.Text(),
 		ch: make(chan *PlaySessionStateNotification, 10),
-		ws: ws,
 	}
 
 	ws.subscribers[subscription.id] = subscription
