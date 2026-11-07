@@ -1,0 +1,6 @@
+**/node_modules
+backend/web
+.git
+.github
+.idea
+.claude
