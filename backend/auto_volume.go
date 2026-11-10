@@ -64,6 +64,10 @@ func (av *AutoVolume) run(ctx context.Context) {
 			continue
 		}
 
+		title := ""
+		ratingKey := notification.RatingKey
+		ruleApplied := ratingKey
+
 		volume := settings.DefaultVolume
 		if notification.State == "playing" {
 			metadatas, err := av.api.GetLibraryMetadata(ctx, plex.GetLibraryMetadataParams{RatingKey: notification.RatingKey})
@@ -81,6 +85,8 @@ func (av *AutoVolume) run(ctx context.Context) {
 			}
 
 			metadata := metadatas.Metadata[0]
+			title = metadata.Title
+
 			switch metadata.Type {
 			case "episode":
 				showRule, err := av.db.ReadVolumeRule(ctx, settings.ServerId, metadata.GrandparentRatingKey)
@@ -89,6 +95,7 @@ func (av *AutoVolume) run(ctx context.Context) {
 					continue
 				}
 				if showRule != nil {
+					ruleApplied = metadata.GrandparentRatingKey
 					volume = showRule.Volume
 				}
 
@@ -98,6 +105,7 @@ func (av *AutoVolume) run(ctx context.Context) {
 					continue
 				}
 				if seasonRule != nil {
+					ruleApplied = metadata.ParentRatingKey
 					volume = seasonRule.Volume
 				}
 			case "movie":
@@ -119,6 +127,14 @@ func (av *AutoVolume) run(ctx context.Context) {
 			continue
 		}
 
+		attrs := []slog.Attr{
+			slog.String("state", notification.State),
+			slog.String("title", title),
+			slog.String("rating_key", ratingKey),
+			slog.String("rule_applied", ruleApplied),
+			slog.Int("volume", volume),
+		}
+		slog.Info("setting volume", slog.Any("change", attrs))
 		_, err = av.sony.SetAudioVolume(ctx, sony.SetVolumeInformationParams{
 			Volume: strconv.Itoa(volume),
 			Output: "",
