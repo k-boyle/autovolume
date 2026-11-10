@@ -140,7 +140,6 @@ func (av *AutoVolume) run(ctx context.Context) {
 			Output: "",
 		})
 		if err != nil {
-			last = notification
 			slog.Error("failed to set audio volume", slog.Any("error", err))
 			continue
 		}
