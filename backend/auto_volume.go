@@ -116,7 +116,6 @@ func (av *AutoVolume) run(ctx context.Context) {
 		}
 
 		if volume == 0 {
-			last = notification
 			continue
 		}
 
