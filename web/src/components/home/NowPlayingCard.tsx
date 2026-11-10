@@ -79,9 +79,10 @@ function PlayingCard({ playback, tv, defaultVolume, playerName }: PlayingCardPro
   const value = draft ?? target.volume ?? rule ?? defaultVolume ?? tvVolume ?? 20
 
   const save = useMutation(VolumeService.method.setVolumeRule, { onSuccess: () => invalidateVolumeRuleQueries(queryClient) })
+  const saveTvVolume = useMutation(VolumeService.method.setVolumeRule, { onSuccess: () => invalidateVolumeRuleQueries(queryClient) })
   const clear = useMutation(VolumeService.method.clearVolumeRule, { onSuccess: () => invalidateVolumeRuleQueries(queryClient) })
   const apply = useMutation(TvService.method.setTvVolume)
-  const error = save.error ?? clear.error ?? apply.error
+  const error = save.error ?? saveTvVolume.error ?? clear.error ?? apply.error
 
   let ruleLine: string
   if (season?.volume !== undefined) {
@@ -143,6 +144,18 @@ function PlayingCard({ playback, tv, defaultVolume, playerName }: PlayingCardPro
             >
               Save {value} for {targetName}
             </Button>
+            {tvVolume !== undefined && (
+              <Button
+                loading={saveTvVolume.isPending}
+                disabled={tvVolume === target.volume}
+                onClick={() => {
+                  setDraft(tvVolume)
+                  saveTvVolume.mutate({ ratingKey: target.ratingKey, volume: tvVolume })
+                }}
+              >
+                Save the TV's {tvVolume} for {targetName}
+              </Button>
+            )}
             <Button
               loading={apply.isPending}
               disabled={!tvOn || value === tvVolume}
