@@ -164,7 +164,8 @@ func backend(db *database.Database, authClient *plex.AuthClient, apiClient *plex
 	recovery := func(next connect.ServerFunc) connect.ServerFunc {
 		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) (err error) {
 			defer func() {
-				if err := recover(); err != nil {
+				if r := recover(); r != nil {
+					slog.Error("recovered from panic", slog.Any("error", r))
 					err = connect.Errorf(connect.CodeInternal, "internal server error")
 				}
 			}()
